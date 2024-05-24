@@ -358,9 +358,67 @@ for i in range(20):
         deck.remove(card)
 
     print(f"Your cards are: {hand[0]} and {hand[1]}")
-    print(f"Dealer's cards are: {dealer_hand[0]}")
+    player_total = blackjack(hand)
+    if player_total[1] != player_total[0]:
+        print(f"You total is {player_total[0]} / {player_total[1]}")
+    else:
+        print(f"Your total is {player_total[0]}")
 
-    winning_probability, stand, hit = calculate_all(deck=tuple(deck),hand=tuple(hand),dealer_card=tuple(dealer_hand))
-    print(f"probability of winning: {winning_probability}")
-    print(f"probability of win if stand: {stand}")
-    print(f"probability of win if hit: {hit}")
+    print(f"Dealer's card is: {dealer_hand[0]}")
+
+    game_over = False
+    finished = False
+    while not finished:
+        winning_probability, stand, hit = calculate_all(deck=tuple(deck), hand=tuple(hand),
+                                                        dealer_card=tuple(dealer_hand))
+        print(f"Probability of winning: {winning_probability}")
+        print(f"Probability of win if stand: {stand}")
+        print(f"Probability of win if hit: {hit}")
+        choice = input("Would you like to hit or stand? (h/s) ")
+        if choice == "h":
+            hand.append(random.choice(deck))
+            print(hand[-1])
+            deck.remove(hand[-1])
+            print(f"You drew a {hand[-1]}")
+            player_total = blackjack(hand)
+            if player_total == [1,1]:
+                print("Busted! You lose!")
+                game_over = True
+                finished = True
+            elif len(player_total) > 1:
+                if player_total[1] != player_total[0]:
+                    print(f"You total is {player_total[0]} / {player_total[1]}")
+                else:
+                    print(f"Your total is {player_total[0]}")
+            else:
+                print(f"Your total is {player_total[0]}")
+        elif choice == "s":
+            print("You chose to stand.")
+            finished = True
+
+    if not game_over:
+        print("Now it's time for the dealer to pick a card!")
+        finished = False
+        while not finished:
+            draw_card = random.choice(deck)
+            dealer_hand.append(draw_card)
+            deck.remove(dealer_hand[-1])
+            dealer_total = blackjack(dealer_hand)
+            print(f"The dealer drew a {dealer_hand[-1]}")
+
+            if dealer_total == [1,1]:
+                print("The dealer busted! You win!")
+                finished = True
+            elif len(dealer_total) > 1 and dealer_total[1] != dealer_total[0]:
+                print(f"The dealer's current total is {dealer_total[0]} / {dealer_total[1]}")
+            elif dealer_total[0] < 17:
+                print(f"The dealer's current total is {dealer_total[0]}")
+            else:
+                if dealer_total[0] > player_total[0]:
+                    print(f"The dealer's total is {dealer_total[0]} and player total is {player_total[0]}. You lose!")
+                else:
+                    print(f"The dealer's total is {dealer_total[0]} and player total is {player_total[0]}. You win!")
+                finished = True
+
+
+
