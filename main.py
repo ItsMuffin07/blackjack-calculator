@@ -305,6 +305,9 @@ def calculate_all(deck: tuple, hand: tuple, dealer_card: tuple) -> tuple[float, 
 
     return winning_probability, stand, hit
 
+"""
+Testing below using 8 decks
+"""
 
 deck = list(EMPTY_DECK)
 
@@ -312,6 +315,7 @@ for i in range(7):
     temp = list(EMPTY_DECK)
     for card in temp:
         deck.append(card)
+
 
 # Test dealer_probability function
 
@@ -345,7 +349,7 @@ for i in range(7):
 # print(x, y)
 # print(x+y)
 
-# Test calculate winning probability functions
+# Simple game to test code
 for i in range(20):
     # Draw player cards
     hand = random.sample(deck, 2)
@@ -371,9 +375,11 @@ for i in range(20):
     while not finished:
         winning_probability, stand, hit = calculate_all(deck=tuple(deck), hand=tuple(hand),
                                                         dealer_card=tuple(dealer_hand))
+        busting_probability = player_probability_busted(deck=tuple(deck),hand=tuple(hand))
         print(f"Probability of winning: {winning_probability}")
         print(f"Probability of win if stand: {stand}")
         print(f"Probability of win if hit: {hit}")
+        print(f"Probability of busting: {busting_probability}")
         choice = input("Would you like to hit or stand? (h/s) ")
         if choice == "h":
             hand.append(random.choice(deck))
