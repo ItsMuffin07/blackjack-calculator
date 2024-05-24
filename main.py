@@ -1,5 +1,6 @@
 from functools import lru_cache
 from time import time
+import random
 
 CACHE_MAXSIZE = None
 
@@ -217,17 +218,20 @@ def player_probability_busted(deck: tuple, hand: tuple) -> float:
 
     return success_probability
 
-
+@lru_cache
 def calculate_win(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
+    """
+    :param deck: The remaining deck
+    :param hand: Player's hand
+    :param dealer_card: Dealer's card
+    :return: Total winning probability
+    """
     winning_probability: float = 0.0
 
     # First case: Dealer busting
     busting_probability = dealer_probability_busted(deck=deck, dealer_hand=dealer_card, stand_value=17)
     winning_probability += busting_probability
 
-    total = 0
-    total += busting_probability
-    print(f"busting {busting_probability}")
     # Next cases: Dealer getting from 17 to 21
     for i in range(17, 22):
         dealer = dealer_probability(deck=deck, dealer_hand=dealer_card, value=i)
@@ -236,11 +240,70 @@ def calculate_win(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
         player = card_probabilities(deck=deck, current_hand=hand, value=i)
         card_probabilities.cache_clear()
 
-        print(i, dealer, player)
         case_probability = dealer * player
         winning_probability += case_probability
 
     return winning_probability
+
+@lru_cache
+def calculate_stand(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
+    """
+    :param deck: The remaining deck
+    :param hand: Player's hand
+    :param dealer_card: Dealer's card
+    :return: winning probability if stand
+    """
+    winning_probability: float = 0.0
+
+    hand = list(hand)
+    hand = blackjack(hand)[0]
+
+    # First case: Dealer busting
+    busting_probability = dealer_probability_busted(deck=deck, dealer_hand=dealer_card, stand_value=17)
+    winning_probability += busting_probability
+
+    # Next cases: From 17 to card
+    end_value = min([hand, 21]) + 1
+    if end_value >= 17:
+        for i in range(17, end_value):
+            dealer = dealer_probability(deck=deck, dealer_hand=dealer_card, value=i)
+            dealer_probability.cache_clear()
+
+            case_probability = dealer
+            winning_probability += case_probability
+
+    return winning_probability
+
+@lru_cache
+def calculate_hit(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
+    """
+    :param deck: The remaining deck
+    :param hand: Player's hand
+    :param dealer_card: Dealer's card
+    :return: probability of a win if hit
+    """
+    stand = calculate_stand(deck=deck, hand=hand, dealer_card=dealer_card)
+    win = calculate_win(deck=deck, hand=hand, dealer_card=dealer_card)
+
+    return win - stand
+
+
+def calculate_all(deck: tuple, hand: tuple, dealer_card: tuple) -> tuple[float, float, float]:
+    """
+    :param deck: The remaining deck
+    :param hand: Player's hand
+    :param dealer_card: Dealer's card
+    :return: winning probability, winning probability if stand, winning probability if hit
+    """
+    deck = list(deck)
+    hand = list(hand)
+    dealer_hand = list(dealer_card)
+
+    winning_probability = calculate_win(deck=tuple(deck), hand=tuple(hand), dealer_card=tuple(dealer_hand))
+    stand = calculate_stand(deck=tuple(deck), hand=tuple(hand), dealer_card=tuple(dealer_hand))
+    hit = calculate_hit(deck=tuple(deck), hand=tuple(hand), dealer_card=tuple(dealer_hand))
+
+    return winning_probability, stand, hit
 
 
 deck = list(EMPTY_DECK)
@@ -282,20 +345,22 @@ for i in range(7):
 # print(x, y)
 # print(x+y)
 
-# Test calculate win function
+# Test calculate winning probability functions
+for i in range(20):
+    # Draw player cards
+    hand = random.sample(deck, 2)
+    for card in hand:
+        deck.remove(card)
 
-deck = list(EMPTY_DECK)
+    # Draw dealer cards
+    dealer_hand = random.sample(deck,1)
+    for card in dealer_hand:
+        deck.remove(card)
 
-for i in range(7):
-    temp = list(EMPTY_DECK)
-    for card in temp:
-        deck.append(card)
+    print(f"Your cards are: {hand[0]} and {hand[1]}")
+    print(f"Dealer's cards are: {dealer_hand[0]}")
 
-hand = [10,8]
-dealer_hand = [7]
-deck.remove(10)
-deck.remove(8)
-deck.remove(7)
-
-prob = calculate_win(deck=tuple(deck), hand=tuple(hand), dealer_card=tuple(dealer_hand))
-print(prob)
+    winning_probability, stand, hit = calculate_all(deck=tuple(deck),hand=tuple(hand),dealer_card=tuple(dealer_hand))
+    print(f"probability of winning: {winning_probability}")
+    print(f"probability of win if stand: {stand}")
+    print(f"probability of win if hit: {hit}")
