@@ -1,3 +1,8 @@
+"""
+Blackjack calculator by Jayden Fung
+"""
+
+
 from functools import lru_cache
 from time import time
 from time import sleep
