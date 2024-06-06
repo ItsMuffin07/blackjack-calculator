@@ -310,3 +310,26 @@ def calculate_all(deck: tuple, hand: tuple, dealer_card: tuple, debug: bool = Fa
         sleep(0.005)
 
     return winning_probability, stand, hit
+
+
+def calculate_bias(empty_deck: tuple, current_deck: tuple) -> float:
+    """
+
+    :param empty_deck:
+    :param current_deck:
+    :return: index of current deck's bias
+             higher means that there are more high cards in deck
+             lower means that there are more low cards in deck
+    """
+    empty_deck = sorted(list(empty_deck))
+    current_deck = sorted(list(current_deck))
+
+    average_empty_value: float = sum(empty_deck) / len(empty_deck)
+    average_current_value: float = sum(current_deck) / len(current_deck)
+
+    # Index calculated by percentage change of average values : Maximum value of 100 (highly unlikely)
+
+    index: float = (100 * (average_current_value - average_empty_value)) / average_empty_value
+
+    return index
+

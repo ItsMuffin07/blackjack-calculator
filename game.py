@@ -36,6 +36,9 @@ for i in range(7):
     for card in temp:
         deck.append(card)
 
+eight_deck = deck.copy()
+
+
 # Simple game to test code
 for i in range(20):
     # Draw player cards
@@ -47,28 +50,34 @@ for i in range(20):
     dealer_hand = random.sample(deck, 1)
     for card in dealer_hand:
         deck.remove(card)
-
     print(f"Your cards are: {hand[0]} and {hand[1]}")
     player_total = blackjack(hand)
-    if player_total[1] != player_total[0]:
-        print(f"You total is {player_total[0]} / {player_total[1]}")
+    if len(player_total) > 1:
+        if player_total[1] != player_total[0]:
+            print(f"You total is {player_total[0]} / {player_total[1]}")
+        else:
+            print(f"Your total is {player_total[0]}")
     else:
         print(f"Your total is {player_total[0]}")
 
     print(f"Dealer's card is: {dealer_hand[0]}")
 
+
     game_over = False
     finished = False
     while not finished:
-        winning_probability, stand, hit = calculate_all(deck=tuple(deck), hand=tuple(hand),
-                                                        dealer_card=tuple(dealer_hand),
-                                                        debug=DEBUG_MODE)
-        busting_probability = player_probability_busted(deck=tuple(deck), hand=tuple(hand))
-        print(f"Probability of winning: {round(winning_probability * 100, 2)}%")
-        print(f"Probability of win if stand: {round(stand * 100, 2)}%")
-        print(f"Probability of win if hit: {round(hit * 100, 2)}%")
-        print(f"Probability of busting: {round(busting_probability * 100, 2)}%")
+        # winning_probability, stand, hit = calculate_all(deck=tuple(deck), hand=tuple(hand),
+        #                                                 dealer_card=tuple(dealer_hand),
+        #                                                 debug=DEBUG_MODE)
+        # busting_probability = player_probability_busted(deck=tuple(deck), hand=tuple(hand))
+        # print(f"Probability of winning: {round(winning_probability * 100, 2)}%")
+        # print(f"Probability of win if stand: {round(stand * 100, 2)}%")
+        # print(f"Probability of win if hit: {round(hit * 100, 2)}%")
+        # print(f"Probability of busting: {round(busting_probability * 100, 2)}%")
+        index = calculate_bias(tuple(eight_deck), tuple(deck))
+        print(f"Bias index: {index}")
         choice = input("Would you like to hit or stand? (h/s) ")
+        print("")
         if choice == "h":
             hand.append(random.choice(deck))
             print(hand[-1])
@@ -103,7 +112,7 @@ for i in range(20):
             if dealer_total == [1, 1]:
                 print("The dealer busted! You win!")
                 finished = True
-            elif len(dealer_total) > 1 and dealer_total[1] != dealer_total[0]:
+            elif len(dealer_total) > 1 and dealer_total[1] != dealer_total[0] and dealer_total[0] < 17:
                 print(f"The dealer's current total is {dealer_total[0]} / {dealer_total[1]}")
             elif dealer_total[0] < 17:
                 print(f"The dealer's current total is {dealer_total[0]}")
@@ -113,3 +122,4 @@ for i in range(20):
                 else:
                     print(f"The dealer's total is {dealer_total[0]} and player total is {player_total[0]}. You win!")
                 finished = True
+    print("")
