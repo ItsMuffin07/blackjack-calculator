@@ -82,11 +82,12 @@ def initialize_card_piles():
 
 
 def draw_card_piles():
+    global ten_pile_face
     for i, pile in enumerate(card_piles):
         if pile:
             suit = current_pile_suits[i]
             if i == 8:  # 10, J, Q, K pile
-                screen.blit(card_images[9 + suit * 13], PILE_POSITIONS[i])
+                screen.blit(card_images[9 + ten_pile_face + suit * 13], PILE_POSITIONS[i])
             elif i == 9:  # Ace pile
                 screen.blit(card_images[13 + suit * 13], PILE_POSITIONS[i])
             else:
@@ -112,13 +113,7 @@ def draw_hands():
 def get_card_image(card_value, hand, index):
     global card_face
     if hand is None or index is None:  # For dragging
-        suit = random.randint(0, 3)
-        if card_value == 11:  # Ace
-            return 13 + suit * 13
-        elif card_value == 10:  # 10, J, Q, K
-            return 9 + suit * 13  # Always use 10 for dragging
-        else:
-            return (card_value - 1) + suit * 13
+        return dragged_image
 
     if (card_value, id(hand), index) in card_suits:
         suit = card_suits[(card_value, id(hand), index)]
@@ -129,8 +124,6 @@ def get_card_image(card_value, hand, index):
     if card_value == 11:  # Ace
         return 13 + suit * 13
     elif card_value == 10:  # 10, J, Q, K
-        if (card_value, id(hand), index) not in card_face:
-            card_face[(card_value, id(hand), index)] = random.randint(0, 3)
         face = card_face[(card_value, id(hand), index)]
         return 9 + face + suit * 13
     else:
@@ -200,13 +193,15 @@ def calculate_probabilities():
 
 
 def reset_game():
-    global dealer_hand, player_hand, discard_pile, probabilities, bias, deck, card_suits
+    global dealer_hand, player_hand, discard_pile, probabilities, bias, deck, card_suits, card_face, ten_pile_face
     dealer_hand = []
     player_hand = []
     discard_pile = []
     probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00}
     bias = 0.00
     card_suits.clear()
+    card_face.clear()
+    ten_pile_face = random.randint(0, 3)
     initialize_card_piles()
 
 
@@ -236,6 +231,7 @@ def return_card_to_pile(card, pile_index):
 running = True
 initialize_card_piles()
 card_face = {}
+ten_pile_face = random.randint(0, 3)  # 0: 10, 1: J, 2: Q, 3: K
 
 while running:
     for event in pygame.event.get():
@@ -260,15 +256,20 @@ while running:
                             dragging = True
                             if i == 8:  # 10, J, Q, K pile
                                 dragged_card = 10
+                                dragged_face = ten_pile_face
+                                dragged_image = 9 + dragged_face + current_pile_suits[i] * 13
                             elif i == 9:  # Ace pile
                                 dragged_card = 11
+                                dragged_image = 13 + current_pile_suits[i] * 13
                             else:
                                 dragged_card = i + 2  # Correct card value (2-9)
-                            dragged_image = i + 1 + current_pile_suits[i] * 13
+                                dragged_image = i + 1 + current_pile_suits[i] * 13
                             deck.remove(dragged_card)
                             card_piles[i].pop()
                             previous_suit = current_pile_suits[i]
                             current_pile_suits[i] = random.randint(0, 3)
+                            if i == 8:  # If we took from the 10's pile, change its face
+                                ten_pile_face = random.randint(0, 3)
                             break
 
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -279,7 +280,7 @@ while running:
                         dealer_hand.append(dragged_card)
                         card_suits[(dragged_card, id(dealer_hand), len(dealer_hand) - 1)] = previous_suit
                         if dragged_card == 10:
-                            card_face[(dragged_card, id(dealer_hand), len(dealer_hand) - 1)] = random.randint(0, 3)
+                            card_face[(dragged_card, id(dealer_hand), len(dealer_hand) - 1)] = dragged_face
                         card_placed = True
                         break
                 for i, slot in enumerate(PLAYER_SLOTS):
@@ -287,7 +288,7 @@ while running:
                         player_hand.append(dragged_card)
                         card_suits[(dragged_card, id(player_hand), len(player_hand) - 1)] = previous_suit
                         if dragged_card == 10:
-                            card_face[(dragged_card, id(player_hand), len(player_hand) - 1)] = random.randint(0, 3)
+                            card_face[(dragged_card, id(player_hand), len(player_hand) - 1)] = dragged_face
                         card_placed = True
                         break
 
