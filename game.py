@@ -38,7 +38,6 @@ for i in range(7):
 
 eight_deck = deck.copy()
 
-
 # Simple game to test code
 for i in range(20):
     # Draw player cards

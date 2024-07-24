@@ -333,3 +333,4 @@ def calculate_bias(empty_deck: tuple, current_deck: tuple) -> float:
 
     return index
 
+
