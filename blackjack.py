@@ -332,5 +332,3 @@ def calculate_bias(empty_deck: tuple, current_deck: tuple) -> float:
     index: float = (100 * (average_current_value - average_empty_value)) / average_empty_value
 
     return index
-
-

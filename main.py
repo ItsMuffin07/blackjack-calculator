@@ -12,10 +12,14 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Blackjack Probability Calculator")
 
 # Colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRAY = (200, 200, 200)
-LIGHT_GRAY = (220, 220, 220)
+MAIN_BG = (10, 95, 56)  # #0A5F38
+SECONDARY_BG = (9, 66, 41)  # #094229
+ACCENT = (212, 175, 55)  # #D4AF37
+TEXT = (245, 245, 245)  # #F5F5F5
+SECONDARY_TEXT = (204, 204, 204)  # #CCCCCC
+ALERT = (196, 30, 58)  # #C41E3A
+HOVER = (14, 140, 83)  # #0E8C53
+BORDER = (184, 134, 11)  # #B8860B
 
 # Fonts
 FONT = pygame.font.Font(None, 36)
@@ -36,13 +40,6 @@ for i in range(1, 53):
 # Card slots
 DEALER_SLOTS = [(50 + i * (CARD_WIDTH + 10), 50) for i in range(10)]
 PLAYER_SLOTS = [(50 + i * (CARD_WIDTH + 10), 200) for i in range(10)]
-
-# Buttons
-reset_button = pygame.Rect(950, 700, 200, 50)
-calculate_button = pygame.Rect(950, 600, 200, 50)
-deck_size_minus_button = pygame.Rect(950, 50, 50, 50)
-deck_size_plus_button = pygame.Rect(1170, 50, 50, 50)
-discard_button = pygame.Rect(950, 500, 200, 50)
 
 # Card piles
 PILE_POSITIONS = [(50 + i * (CARD_WIDTH + 10), 400) for i in range(10)]
@@ -76,6 +73,20 @@ card_suits = {}  # This will store the suit for each placed card
 card_face = {}
 ten_pile_face = random.randint(0, 3)  # 0: 10, 1: J, 2: Q, 3: K
 
+def render_deck_size_text():
+    deck_size_text = FONT.render(f"Deck Size: {deck_size}", True, TEXT)
+    deck_size_text_rect = deck_size_text.get_rect(center=(1085, 75))
+    screen.blit(deck_size_text, deck_size_text_rect)
+
+def update_bias():
+    global bias
+    full_deck = EMPTY_DECK * deck_size
+    bias = blackjack.calculate_bias(full_deck, tuple(deck))
+def draw_card_background(surface, position):
+    card_bg = pygame.Surface((CARD_WIDTH, CARD_HEIGHT))
+    card_bg.fill((255, 255, 255))  # White background
+    surface.blit(card_bg, position)
+
 def initialize_card_piles():
     global card_piles, deck, current_pile_suits
     card_piles = [[] for _ in range(10)]
@@ -94,25 +105,28 @@ def draw_card_piles():
     for i, pile in enumerate(card_piles):
         if pile:
             suit = current_pile_suits[i]
+            draw_card_background(screen, PILE_POSITIONS[i])
             if i == 8:  # 10, J, Q, K pile
                 screen.blit(card_images[9 + ten_pile_face + suit * 13], PILE_POSITIONS[i])
             elif i == 9:  # Ace pile
                 screen.blit(card_images[13 + suit * 13], PILE_POSITIONS[i])
             else:
                 screen.blit(card_images[i + 1 + suit * 13], PILE_POSITIONS[i])
-        pygame.draw.rect(screen, BLACK, (*PILE_POSITIONS[i], CARD_WIDTH, CARD_HEIGHT), 2)
-        count = SMALL_FONT.render(str(len(pile)), True, BLACK)
+        pygame.draw.rect(screen, BORDER, (*PILE_POSITIONS[i], CARD_WIDTH, CARD_HEIGHT), 2)
+        count = SMALL_FONT.render(str(len(pile)), True, TEXT)
         screen.blit(count, (PILE_POSITIONS[i][0] + 5, PILE_POSITIONS[i][1] + CARD_HEIGHT + 5))
 
 def draw_slots():
     for slot in DEALER_SLOTS + PLAYER_SLOTS:
-        pygame.draw.rect(screen, GRAY, (*slot, CARD_WIDTH, CARD_HEIGHT), 2)
+        pygame.draw.rect(screen, BORDER, (*slot, CARD_WIDTH, CARD_HEIGHT), 2)
 
 def draw_hands():
     for i, card in enumerate(dealer_hand):
+        draw_card_background(screen, DEALER_SLOTS[i])
         card_image = get_card_image(card, dealer_hand, i)
         screen.blit(card_images[card_image], DEALER_SLOTS[i])
     for i, card in enumerate(player_hand):
+        draw_card_background(screen, PLAYER_SLOTS[i])
         card_image = get_card_image(card, player_hand, i)
         screen.blit(card_images[card_image], PLAYER_SLOTS[i])
 
@@ -145,10 +159,10 @@ def get_card_image(card_value, hand, index):
         return (card_value - 1) + suit * 13
 
 def draw_probabilities():
-    win_text = FONT.render(f"Win: {probabilities['win']:.2%}", True, BLACK)
-    stand_text = FONT.render(f"Stand: {probabilities['stand']:.2%}", True, BLACK)
-    hit_text = FONT.render(f"Hit: {probabilities['hit']:.2%}", True, BLACK)
-    bias_text = FONT.render(f"Bias: {bias:.2f}", True, BLACK)
+    win_text = FONT.render(f"Win: {probabilities['win']:.2%}", True, TEXT)
+    stand_text = FONT.render(f"Stand: {probabilities['stand']:.2%}", True, TEXT)
+    hit_text = FONT.render(f"Hit: {probabilities['hit']:.2%}", True, TEXT)
+    bias_text = FONT.render(f"Bias: {bias:.2f}", True, TEXT)
 
     screen.blit(win_text, (950, 300))
     screen.blit(stand_text, (950, 350))
@@ -156,26 +170,24 @@ def draw_probabilities():
     screen.blit(bias_text, (950, 450))
 
 def draw_buttons():
-    pygame.draw.rect(screen, LIGHT_GRAY, reset_button)
-    reset_text = FONT.render("Reset", True, BLACK)
+    pygame.draw.rect(screen, ACCENT, reset_button)
+    reset_text = FONT.render("Reset", True, TEXT)
     screen.blit(reset_text, (reset_button.x + 60, reset_button.y + 10))
 
-    pygame.draw.rect(screen, LIGHT_GRAY, calculate_button)
-    calculate_text = FONT.render("Calculate", True, BLACK)
+    pygame.draw.rect(screen, ACCENT, calculate_button)
+    calculate_text = FONT.render("Calculate", True, TEXT)
     screen.blit(calculate_text, (calculate_button.x + 40, calculate_button.y + 10))
 
-    pygame.draw.rect(screen, LIGHT_GRAY, deck_size_minus_button)
-    pygame.draw.rect(screen, LIGHT_GRAY, deck_size_plus_button)
-    minus_text = FONT.render("-", True, BLACK)
-    plus_text = FONT.render("+", True, BLACK)
+    pygame.draw.rect(screen, ACCENT, deck_size_minus_button)
+    pygame.draw.rect(screen, ACCENT, deck_size_plus_button)
+    minus_text = FONT.render("-", True, TEXT)
+    plus_text = FONT.render("+", True, TEXT)
     screen.blit(minus_text, (deck_size_minus_button.x + 20, deck_size_minus_button.y + 10))
     screen.blit(plus_text, (deck_size_plus_button.x + 20, deck_size_plus_button.y + 10))
 
-    deck_size_text = FONT.render(f"Deck Size: {deck_size}", True, BLACK)
-    screen.blit(deck_size_text, (1010, 60))
 
-    pygame.draw.rect(screen, LIGHT_GRAY, discard_button)
-    discard_text = FONT.render("Discard All", True, BLACK)
+    pygame.draw.rect(screen, ACCENT, discard_button)
+    discard_text = FONT.render("Discard All", True, TEXT)
     screen.blit(discard_text, (discard_button.x + 30, discard_button.y + 10))
 
 def card_to_value(card):
@@ -187,13 +199,12 @@ def card_to_value(card):
         return str(card)
 
 def calculate_probabilities():
-    global probabilities, bias
+    global probabilities, bias, deck
     if dealer_hand and player_hand:
         probabilities["win"], probabilities["stand"], probabilities["hit"] = blackjack.calculate_all(tuple(deck),
                                                                                                      tuple(player_hand),
                                                                                                      tuple(dealer_hand))
-        bias = blackjack.calculate_bias(EMPTY_DECK,
-                                        tuple(set(deck) - set(dealer_hand) - set(player_hand) - set(discard_pile)))
+        bias = blackjack.calculate_bias(EMPTY_DECK, tuple(deck))
 
         print("Player's hand:", [card_to_value(card) for card in player_hand])
         print("Dealer's hand:", [card_to_value(card) for card in dealer_hand])
@@ -208,12 +219,11 @@ def reset_game():
     player_hand = []
     discard_pile = []
     probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00}
-    bias = 0.00
     card_suits.clear()
     card_face.clear()
     ten_pile_face = random.randint(0, 3)
     initialize_card_piles()
-
+    update_bias()
 def change_deck_size(change):
     global deck_size
     deck_size = max(1, min(8, deck_size + change))
@@ -223,13 +233,14 @@ def discard_all_cards():
     global dealer_hand, player_hand, discard_pile, card_suits
     cards_to_discard = dealer_hand + player_hand
     print(f"Cards being discarded: {cards_to_discard}")  # Debug print
-    animate_discard(cards_to_discard)
-    discard_pile.extend(cards_to_discard)
-    dealer_hand = []
-    player_hand = []
-    card_suits.clear()
+    if cards_to_discard:  # Only animate and discard if there are cards to discard
+        animate_discard(cards_to_discard)
+        discard_pile.extend(cards_to_discard)
+        dealer_hand = []
+        player_hand = []
+        card_suits.clear()
+        update_bias()
     print(f"Discard pile after discard: {discard_pile}")  # Debug print
-    print(f"Deck: {deck}")
 
 def return_card_to_pile(card, pile_index):
     global deck
@@ -240,9 +251,9 @@ def draw_discard_pile():
     if discard_pile:
         screen.blit(spectral_deck_image, DISCARD_PILE_POS)
     else:
-        pygame.draw.rect(screen, GRAY, (*DISCARD_PILE_POS, *DISCARD_PILE_SIZE), 2)
+        pygame.draw.rect(screen, BORDER, (*DISCARD_PILE_POS, *DISCARD_PILE_SIZE), 2)
 
-    count = SMALL_FONT.render(str(len(discard_pile)), True, BLACK)
+    count = SMALL_FONT.render(str(len(discard_pile)), True, TEXT)
     screen.blit(count, (DISCARD_PILE_POS[0] + 5, DISCARD_PILE_POS[1] + CARD_HEIGHT + 5))
 
 def show_discard_popup():
@@ -250,10 +261,10 @@ def show_discard_popup():
     popup_x = DISCARD_PILE_POS[0] - popup_width - 10
     popup_y = DISCARD_PILE_POS[1]
 
-    pygame.draw.rect(screen, WHITE, (popup_x, popup_y, popup_width, popup_height))
-    pygame.draw.rect(screen, BLACK, (popup_x, popup_y, popup_width, popup_height), 2)
+    pygame.draw.rect(screen, SECONDARY_BG, (popup_x, popup_y, popup_width, popup_height))
+    pygame.draw.rect(screen, BORDER, (popup_x, popup_y, popup_width, popup_height), 2)
 
-    title = FONT.render("Discarded Cards", True, BLACK)
+    title = FONT.render("Discarded Cards", True, TEXT)
     screen.blit(title, (popup_x + 10, popup_y + 10))
 
     # Count the occurrences of each card value
@@ -264,7 +275,7 @@ def show_discard_popup():
     y_offset = 50
     for card_value, count in card_counts.items():
         if count > 0:
-            card_text = SMALL_FONT.render(f"{card_to_value(card_value)}: {count}", True, BLACK)
+            card_text = SMALL_FONT.render(f"{card_to_value(card_value)}: {count}", True, TEXT)
             screen.blit(card_text, (popup_x + 10, popup_y + y_offset))
             y_offset += 30
         if y_offset > popup_height - 30:
@@ -282,12 +293,14 @@ def animate_discard(cards_to_discard):
 
     while pygame.time.get_ticks() - start_time < animation_duration:
         progress = (pygame.time.get_ticks() - start_time) / animation_duration
-        screen.fill(WHITE)
+        screen.fill(MAIN_BG)
         draw_card_piles()
         draw_slots()
         draw_hands()
         draw_probabilities()
-        draw_buttons()
+        for button in buttons:
+            button.draw(screen)
+
         draw_discard_pile()
 
         for i, card_image in enumerate(card_images_to_discard):
@@ -296,6 +309,7 @@ def animate_discard(cards_to_discard):
                 start_pos[0] + (end_position[0] - start_pos[0]) * progress,
                 start_pos[1] + (end_position[1] - start_pos[1]) * progress
             )
+            draw_card_background(screen, current_pos)
             screen.blit(card_images[card_image], current_pos)
 
         pygame.display.flip()
@@ -311,11 +325,60 @@ def return_card_to_original_pile(card):
     else:  # 2-9
         card_piles[card - 2].append(card)
     current_pile_suits[card - 2 if card < 10 else 8 if card == 10 else 9] = random.randint(0, 3)
+    update_bias()
 
+class Button:
+    def __init__(self, x, y, width, height, text, font, action=None):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.text = text
+        self.font = font
+        self.action = action
+        self.is_hovered = False
+        self.is_clicked = False
+        self.original_y = y
+        self.hover_offset = 3
+        self.click_offset = 5
+
+    def draw(self, surface):
+        color = ACCENT
+        text_color = TEXT
+        y_offset = 0
+
+        if self.is_clicked:
+            color = HOVER
+            y_offset = self.click_offset
+        elif self.is_hovered:
+            color = HOVER
+            y_offset = self.hover_offset
+
+        pygame.draw.rect(surface, color, (self.rect.x, self.rect.y + y_offset, self.rect.width, self.rect.height))
+        text_surf = self.font.render(self.text, True, text_color)
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        text_rect.y += y_offset
+        surface.blit(text_surf, text_rect)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEMOTION:
+            self.is_hovered = self.rect.collidepoint(event.pos)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1 and self.rect.collidepoint(event.pos):
+                self.is_clicked = True
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1 and self.is_clicked:
+                self.is_clicked = False
+                if self.rect.collidepoint(event.pos) and self.action:
+                    self.action()
+
+# Create button instances
+reset_button = Button(950, 700, 200, 50, "Reset", FONT, reset_game)
+calculate_button = Button(950, 600, 200, 50, "Calculate", FONT, calculate_probabilities)
+deck_size_minus_button = Button(950, 50, 50, 50, "-", FONT, lambda: change_deck_size(-1))
+deck_size_plus_button = Button(1170, 50, 50, 50, "+", FONT, lambda: change_deck_size(1))
+discard_button = Button(950, 500, 200, 50, "Discard All", FONT, discard_all_cards)
+
+buttons = [reset_button, calculate_button, deck_size_minus_button, deck_size_plus_button, discard_button]
 
 # Main game loop
-
-
 running = True
 initialize_card_piles()
 show_discard_info = False
@@ -325,19 +388,12 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-        elif event.type == pygame.MOUSEBUTTONDOWN:
+        for button in buttons:
+            button.handle_event(event)
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left mouse button
-                if reset_button.collidepoint(event.pos):
-                    reset_game()
-                elif calculate_button.collidepoint(event.pos):
-                    calculate_probabilities()
-                elif deck_size_minus_button.collidepoint(event.pos):
-                    change_deck_size(-1)
-                elif deck_size_plus_button.collidepoint(event.pos):
-                    change_deck_size(1)
-                elif discard_button.collidepoint(event.pos):
-                    discard_all_cards()
-                elif pygame.Rect(*DISCARD_PILE_POS, *DISCARD_PILE_SIZE).collidepoint(event.pos):
+                if pygame.Rect(*DISCARD_PILE_POS, *DISCARD_PILE_SIZE).collidepoint(event.pos):
                     show_discard_info = True
                 else:
                     # Check if a dealer slot was clicked
@@ -348,6 +404,7 @@ while running:
                             # Remove the card's suit and face information
                             card_suits = {k: v for k, v in card_suits.items() if k[1] != id(dealer_hand) or k[2] != i}
                             card_face = {k: v for k, v in card_face.items() if k[1] != id(dealer_hand) or k[2] != i}
+                            update_bias()
                             break
 
                     # Check if a player slot was clicked
@@ -358,6 +415,7 @@ while running:
                             # Remove the card's suit and face information
                             card_suits = {k: v for k, v in card_suits.items() if k[1] != id(player_hand) or k[2] != i}
                             card_face = {k: v for k, v in card_face.items() if k[1] != id(player_hand) or k[2] != i}
+                            update_bias()
                             break
 
                     # Check if a pile was clicked (for dragging)
@@ -380,6 +438,7 @@ while running:
                             current_pile_suits[i] = random.randint(0, 3)
                             if i == 8:  # If we took from the 10's pile, change its face
                                 ten_pile_face = random.randint(0, 3)
+                            update_bias()
                             break
 
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -392,6 +451,7 @@ while running:
                         if dragged_card == 10:
                             card_face[(dragged_card, id(dealer_hand), len(dealer_hand) - 1)] = dragged_face
                         card_placed = True
+                        update_bias()
                         break
                 for i, slot in enumerate(PLAYER_SLOTS):
                     if pygame.Rect(*slot, CARD_WIDTH, CARD_HEIGHT).collidepoint(event.pos):
@@ -400,6 +460,7 @@ while running:
                         if dragged_card == 10:
                             card_face[(dragged_card, id(player_hand), len(player_hand) - 1)] = dragged_face
                         card_placed = True
+                        update_bias()
                         break
 
                 if not card_placed:
@@ -407,6 +468,7 @@ while running:
                                         dragged_card - 2 if dragged_card < 10 else 8 if dragged_card == 10 else 9)
                     current_pile_suits[
                         dragged_card - 2 if dragged_card < 10 else 8 if dragged_card == 10 else 9] = previous_suit
+                    update_bias()
 
                 dragging = False
                 dragged_card = None
@@ -414,17 +476,22 @@ while running:
 
             show_discard_info = False
 
-    screen.fill(WHITE)
+    screen.fill(MAIN_BG)
     draw_card_piles()
     draw_slots()
     draw_hands()
     draw_probabilities()
-    draw_buttons()
+    for button in buttons:
+        button.draw(screen)
+    render_deck_size_text()
     draw_discard_pile()
+
 
     if dragging and dragged_image:
         mouse_pos = pygame.mouse.get_pos()
-        screen.blit(card_images[dragged_image], (mouse_pos[0] - CARD_WIDTH // 2, mouse_pos[1] - CARD_HEIGHT // 2))
+        drag_pos = (mouse_pos[0] - CARD_WIDTH // 2, mouse_pos[1] - CARD_HEIGHT // 2)
+        draw_card_background(screen, drag_pos)
+        screen.blit(card_images[dragged_image], drag_pos)
 
     if show_discard_info:
         show_discard_popup()
