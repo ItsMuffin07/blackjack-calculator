@@ -65,14 +65,14 @@ for i in range(20):
     game_over = False
     finished = False
     while not finished:
-        # winning_probability, stand, hit = calculate_all(deck=tuple(deck), hand=tuple(hand),
-        #                                                 dealer_card=tuple(dealer_hand),
-        #                                                 debug=DEBUG_MODE)
-        # busting_probability = player_probability_busted(deck=tuple(deck), hand=tuple(hand))
-        # print(f"Probability of winning: {round(winning_probability * 100, 2)}%")
-        # print(f"Probability of win if stand: {round(stand * 100, 2)}%")
-        # print(f"Probability of win if hit: {round(hit * 100, 2)}%")
-        # print(f"Probability of busting: {round(busting_probability * 100, 2)}%")
+        winning_probability, stand, hit = calculate_all(deck=tuple(deck), hand=tuple(hand),
+                                                        dealer_card=tuple(dealer_hand),
+                                                        debug=DEBUG_MODE)
+        busting_probability = player_probability_busted(deck=tuple(deck), hand=tuple(hand))
+        print(f"Probability of winning: {round(winning_probability * 100, 2)}%")
+        print(f"Probability of win if stand: {round(stand * 100, 2)}%")
+        print(f"Probability of win if hit: {round(hit * 100, 2)}%")
+        print(f"Probability of busting: {round(busting_probability * 100, 2)}%")
         index = calculate_bias(tuple(eight_deck), tuple(deck))
         print(f"Bias index: {index}")
         choice = input("Would you like to hit or stand? (h/s) ")

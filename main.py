@@ -1,6 +1,8 @@
 import pygame
 import sys
 import random
+import math
+
 import blackjack
 
 # Initialize Pygame
@@ -55,6 +57,9 @@ DISCARD_PILE_SIZE = (CARD_WIDTH, CARD_HEIGHT)
 # Load spectral deck image
 spectral_deck_image = pygame.image.load("images/spectral_deck.png")
 spectral_deck_image = pygame.transform.scale(spectral_deck_image, DISCARD_PILE_SIZE)
+
+# Discard animation constants
+GATHERING_POINT = (590, 150)  # Center of the screen
 
 # Game state
 deck_size = 1
@@ -234,10 +239,10 @@ def discard_all_cards():
     cards_to_discard = dealer_hand + player_hand
     print(f"Cards being discarded: {cards_to_discard}")  # Debug print
     if cards_to_discard:  # Only animate and discard if there are cards to discard
-        animate_discard(cards_to_discard)
         discard_pile.extend(cards_to_discard)
         dealer_hand = []
         player_hand = []
+        animate_discard(cards_to_discard)
         card_suits.clear()
         update_bias()
     print(f"Discard pile after discard: {discard_pile}")  # Debug print
@@ -281,18 +286,25 @@ def show_discard_popup():
         if y_offset > popup_height - 30:
             break
 
+
 def animate_discard(cards_to_discard):
     start_positions = [slot for slot in DEALER_SLOTS + PLAYER_SLOTS if slot[0] < DISCARD_PILE_POS[0]]
-    end_position = DISCARD_PILE_POS
+    end_position = (DISCARD_PILE_POS[0] + CARD_WIDTH/2, DISCARD_PILE_POS[1] + CARD_HEIGHT / 2)
 
     clock = pygame.time.Clock()
-    animation_duration = 1000  # milliseconds
+    total_animation_duration = 2000  # milliseconds
+    gather_duration = 1000  # milliseconds for gathering phase
+    discard_duration = 1000  # milliseconds for discarding phase
     start_time = pygame.time.get_ticks()
 
     card_images_to_discard = [get_card_image(card, None, None) for card in cards_to_discard]
 
-    while pygame.time.get_ticks() - start_time < animation_duration:
-        progress = (pygame.time.get_ticks() - start_time) / animation_duration
+    # Ensure we have a starting position for each card
+    while len(start_positions) < len(cards_to_discard):
+        start_positions.append(start_positions[-1])
+
+    while pygame.time.get_ticks() - start_time < total_animation_duration:
+        current_time = pygame.time.get_ticks() - start_time
         screen.fill(MAIN_BG)
         draw_card_piles()
         draw_slots()
@@ -300,20 +312,53 @@ def animate_discard(cards_to_discard):
         draw_probabilities()
         for button in buttons:
             button.draw(screen)
-
+        render_deck_size_text()
         draw_discard_pile()
 
         for i, card_image in enumerate(card_images_to_discard):
-            start_pos = start_positions[i] if i < len(start_positions) else start_positions[-1]
-            current_pos = (
-                start_pos[0] + (end_position[0] - start_pos[0]) * progress,
-                start_pos[1] + (end_position[1] - start_pos[1]) * progress
-            )
-            draw_card_background(screen, current_pos)
-            screen.blit(card_images[card_image], current_pos)
+            start_pos = start_positions[i]
+
+            if current_time < gather_duration:
+                # Gathering phase
+                progress = current_time / gather_duration
+                current_pos = (
+                    start_pos[0] + (GATHERING_POINT[0] - start_pos[0]) * progress,
+                    start_pos[1] + (GATHERING_POINT[1] - start_pos[1]) * progress
+                )
+            else:
+                # Discarding phase
+                progress = (current_time - gather_duration) / discard_duration
+                current_pos = (
+                    GATHERING_POINT[0] + (end_position[0] - GATHERING_POINT[0]) * progress,
+                    GATHERING_POINT[1] + (end_position[1] - GATHERING_POINT[1]) * progress
+                )
+
+            # Create a white background surface
+            bg_surface = pygame.Surface((CARD_WIDTH, CARD_HEIGHT))
+            bg_surface.fill((255, 255, 255))  # White color
+
+            # Calculate the position to blit the surfaces
+            bg_rect = bg_surface.get_rect(center=current_pos)
+            card_rect = card_images[card_image].get_rect(center=current_pos)
+
+            # Blit the white background and then the card
+            screen.blit(bg_surface, bg_rect)
+            screen.blit(card_images[card_image], card_rect)
 
         pygame.display.flip()
         clock.tick(60)
+
+    # Ensure the final state is drawn
+    screen.fill(MAIN_BG)
+    draw_card_piles()
+    draw_slots()
+    draw_hands()
+    draw_probabilities()
+    for button in buttons:
+        button.draw(screen)
+    render_deck_size_text()
+    draw_discard_pile()
+    pygame.display.flip()
 
 def return_card_to_original_pile(card):
     global deck, card_piles, current_pile_suits
