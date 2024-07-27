@@ -7,7 +7,7 @@ import blackjack
 pygame.init()
 
 # Screen dimensions
-WIDTH, HEIGHT = 1200, 800
+WIDTH, HEIGHT = 1250, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Blackjack Probability Calculator")
 
@@ -41,7 +41,7 @@ PLAYER_SLOTS = [(50 + i * (CARD_WIDTH + 10), 200) for i in range(10)]
 reset_button = pygame.Rect(950, 700, 200, 50)
 calculate_button = pygame.Rect(950, 600, 200, 50)
 deck_size_minus_button = pygame.Rect(950, 50, 50, 50)
-deck_size_plus_button = pygame.Rect(1100, 50, 50, 50)
+deck_size_plus_button = pygame.Rect(1170, 50, 50, 50)
 discard_button = pygame.Rect(950, 500, 200, 50)
 
 # Card piles
@@ -50,6 +50,15 @@ PILE_POSITIONS = [(50 + i * (CARD_WIDTH + 10), 400) for i in range(10)]
 EMPTY_DECK = (2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7,
               8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
               10, 10, 10, 10, 11, 11, 11, 11)
+
+
+# Discard Pile
+DISCARD_PILE_POS = (950, 150)
+DISCARD_PILE_SIZE = (CARD_WIDTH, CARD_HEIGHT)
+
+# Load spectral deck image
+spectral_deck_image = pygame.image.load("images/spectral_deck.png")
+spectral_deck_image = pygame.transform.scale(spectral_deck_image, DISCARD_PILE_SIZE)
 
 # Game state
 deck_size = 1
@@ -112,8 +121,15 @@ def draw_hands():
 
 def get_card_image(card_value, hand, index):
     global card_face
-    if hand is None or index is None:  # For dragging
-        return dragged_image
+    if hand is None or index is None:  # For dragging or discarding
+        suit = random.randint(0, 3)
+        if card_value == 11:  # Ace
+            return 13 + suit * 13
+        elif card_value == 10:  # 10, J, Q, K
+            face = random.randint(0, 3)
+            return 9 + face + suit * 13
+        else:
+            return (card_value - 1) + suit * 13
 
     if (card_value, id(hand), index) in card_suits:
         suit = card_suits[(card_value, id(hand), index)]
@@ -124,6 +140,8 @@ def get_card_image(card_value, hand, index):
     if card_value == 11:  # Ace
         return 13 + suit * 13
     elif card_value == 10:  # 10, J, Q, K
+        if (card_value, id(hand), index) not in card_face:
+            card_face[(card_value, id(hand), index)] = random.randint(0, 3)
         face = card_face[(card_value, id(hand), index)]
         return 9 + face + suit * 13
     else:
@@ -170,10 +188,9 @@ def card_to_value(card):
     if card == 11:
         return 'A'
     elif card == 10:
-        return '10'
+        return '10/J/Q/K'
     else:
         return str(card)
-
 
 def calculate_probabilities():
     global probabilities, bias
@@ -212,19 +229,90 @@ def change_deck_size(change):
 
 
 def discard_all_cards():
-    global dealer_hand, player_hand, discard_pile, deck, card_suits
-    discard_pile.extend(dealer_hand + player_hand)
-    for card in dealer_hand + player_hand:
-        deck.remove(card)
+    global dealer_hand, player_hand, discard_pile, card_suits
+    cards_to_discard = dealer_hand + player_hand
+    print(f"Cards being discarded: {cards_to_discard}")  # Debug print
+    animate_discard(cards_to_discard)
+    discard_pile.extend(cards_to_discard)
     dealer_hand = []
     player_hand = []
     card_suits.clear()
-
+    print(f"Discard pile after discard: {discard_pile}")  # Debug print
 
 def return_card_to_pile(card, pile_index):
     global deck
     card_piles[pile_index].append(card)
-    deck.append(card)
+
+
+def draw_discard_pile():
+    if discard_pile:
+        screen.blit(spectral_deck_image, DISCARD_PILE_POS)
+    else:
+        pygame.draw.rect(screen, GRAY, (*DISCARD_PILE_POS, *DISCARD_PILE_SIZE), 2)
+
+    count = SMALL_FONT.render(str(len(discard_pile)), True, BLACK)
+    screen.blit(count, (DISCARD_PILE_POS[0] + 5, DISCARD_PILE_POS[1] + CARD_HEIGHT + 5))
+
+
+def show_discard_popup():
+    popup_width, popup_height = 300, 400
+    popup_x = DISCARD_PILE_POS[0] - popup_width - 10
+    popup_y = DISCARD_PILE_POS[1]
+
+    pygame.draw.rect(screen, WHITE, (popup_x, popup_y, popup_width, popup_height))
+    pygame.draw.rect(screen, BLACK, (popup_x, popup_y, popup_width, popup_height), 2)
+
+    title = FONT.render("Discarded Cards", True, BLACK)
+    screen.blit(title, (popup_x + 10, popup_y + 10))
+
+    # Count the occurrences of each card value
+    card_counts = {2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0}
+    for card in discard_pile:
+        card_counts[card] += 1
+
+    y_offset = 50
+    for card_value, count in card_counts.items():
+        if count > 0:
+            card_text = SMALL_FONT.render(f"{card_to_value(card_value)}: {count}", True, BLACK)
+            screen.blit(card_text, (popup_x + 10, popup_y + y_offset))
+            y_offset += 30
+        if y_offset > popup_height - 30:
+            break
+
+
+
+def animate_discard(cards_to_discard):
+    start_positions = [slot for slot in DEALER_SLOTS + PLAYER_SLOTS if slot[0] < DISCARD_PILE_POS[0]]
+    end_position = DISCARD_PILE_POS
+
+    clock = pygame.time.Clock()
+    animation_duration = 1000  # milliseconds
+    start_time = pygame.time.get_ticks()
+
+    card_images_to_discard = [get_card_image(card, None, None) for card in cards_to_discard]
+
+    while pygame.time.get_ticks() - start_time < animation_duration:
+        progress = (pygame.time.get_ticks() - start_time) / animation_duration
+        screen.fill(WHITE)
+        draw_card_piles()
+        draw_slots()
+        draw_hands()
+        draw_probabilities()
+        draw_buttons()
+        draw_discard_pile()
+
+        for i, card_image in enumerate(card_images_to_discard):
+            start_pos = start_positions[i] if i < len(start_positions) else start_positions[-1]
+            current_pos = (
+                start_pos[0] + (end_position[0] - start_pos[0]) * progress,
+                start_pos[1] + (end_position[1] - start_pos[1]) * progress
+            )
+            screen.blit(card_images[card_image], current_pos)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+
 
 
 # Main game loop
@@ -232,6 +320,7 @@ running = True
 initialize_card_piles()
 card_face = {}
 ten_pile_face = random.randint(0, 3)  # 0: 10, 1: J, 2: Q, 3: K
+show_discard_info = False
 
 while running:
     for event in pygame.event.get():
@@ -250,6 +339,8 @@ while running:
                     change_deck_size(1)
                 elif discard_button.collidepoint(event.pos):
                     discard_all_cards()
+                elif pygame.Rect(*DISCARD_PILE_POS, *DISCARD_PILE_SIZE).collidepoint(event.pos):
+                    show_discard_info = True
                 else:
                     for i, pile_pos in enumerate(PILE_POSITIONS):
                         if pygame.Rect(*pile_pos, CARD_WIDTH, CARD_HEIGHT).collidepoint(event.pos) and card_piles[i]:
@@ -302,16 +393,22 @@ while running:
                 dragged_card = None
                 dragged_image = None
 
+            show_discard_info = False
+
     screen.fill(WHITE)
     draw_card_piles()
     draw_slots()
     draw_hands()
     draw_probabilities()
     draw_buttons()
+    draw_discard_pile()
 
     if dragging and dragged_image:
         mouse_pos = pygame.mouse.get_pos()
         screen.blit(card_images[dragged_image], (mouse_pos[0] - CARD_WIDTH // 2, mouse_pos[1] - CARD_HEIGHT // 2))
+
+    if show_discard_info:
+        show_discard_popup()
 
     pygame.display.flip()
 
