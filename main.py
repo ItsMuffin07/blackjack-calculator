@@ -30,6 +30,14 @@ SMALL_FONT = pygame.font.Font(None, 24)
 # Card dimensions
 CARD_WIDTH, CARD_HEIGHT = 71, 96
 
+# Probability Bar
+BAR_WIDTH = 200
+BAR_HEIGHT = 20
+BAR_X = 950
+BAR_Y = 250
+STAND_COLOR = (255, 0, 0)  # Bright green
+HIT_COLOR = (0, 255, 0)  # Bright yellow
+
 # Load card images
 card_images = {}
 for i in range(1, 53):
@@ -51,7 +59,7 @@ EMPTY_DECK = (2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 
               10, 10, 10, 10, 11, 11, 11, 11)
 
 # Discard Pile
-DISCARD_PILE_POS = (950, 150)
+DISCARD_PILE_POS = (950, 120)
 DISCARD_PILE_SIZE = (CARD_WIDTH, CARD_HEIGHT)
 
 # Load spectral deck image
@@ -77,6 +85,45 @@ current_pile_suits = [random.randint(0, 3) for _ in range(10)]  # 0: hearts, 1: 
 card_suits = {}  # This will store the suit for each placed card
 card_face = {}
 ten_pile_face = random.randint(0, 3)  # 0: 10, 1: J, 2: Q, 3: K
+
+
+def draw_percentage_bars():
+    total_width = BAR_WIDTH
+    total_probability = probabilities['stand']+probabilities['hit']
+    if total_probability == 0:
+        stand_width = 0
+        hit_width = 0
+    else:
+        stand_width = BAR_WIDTH * (probabilities['stand'] / total_probability)
+        hit_width = BAR_WIDTH * (probabilities['hit'] / total_probability)
+
+    # Draw background
+    pygame.draw.rect(screen, (100, 100, 100), (BAR_X, BAR_Y, BAR_WIDTH, BAR_HEIGHT))
+
+    # Draw stand bar
+    pygame.draw.rect(screen, STAND_COLOR, (BAR_X, BAR_Y, stand_width, BAR_HEIGHT))
+
+    # Draw hit bar
+    pygame.draw.rect(screen, HIT_COLOR, (BAR_X + stand_width, BAR_Y, hit_width, BAR_HEIGHT))
+
+    # Draw border
+    pygame.draw.rect(screen, (255, 255, 255), (BAR_X, BAR_Y, BAR_WIDTH, BAR_HEIGHT), 2)
+
+    # Add text labels
+    font = pygame.font.Font(None, 24)  # You can adjust the font size as needed
+
+    # Stand label
+    stand_text = font.render("Stand", True, (255, 255, 255))
+    stand_text_rect = stand_text.get_rect(topleft=(BAR_X, BAR_Y + BAR_HEIGHT + 5))
+    screen.blit(stand_text, stand_text_rect)
+
+    # Hit label
+    hit_text = font.render("Hit", True, (255, 255, 255))
+    hit_text_rect = hit_text.get_rect(topright=(BAR_X + BAR_WIDTH, BAR_Y + BAR_HEIGHT + 5))
+    screen.blit(hit_text, hit_text_rect)
+
+
+
 
 def render_deck_size_text():
     deck_size_text = FONT.render(f"Deck Size: {deck_size}", True, TEXT)
@@ -526,6 +573,7 @@ while running:
     draw_slots()
     draw_hands()
     draw_probabilities()
+    draw_percentage_bars()
     for button in buttons:
         button.draw(screen)
     render_deck_size_text()
