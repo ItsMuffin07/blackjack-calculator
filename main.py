@@ -51,7 +51,6 @@ EMPTY_DECK = (2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 
               8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
               10, 10, 10, 10, 11, 11, 11, 11)
 
-
 # Discard Pile
 DISCARD_PILE_POS = (950, 150)
 DISCARD_PILE_SIZE = (CARD_WIDTH, CARD_HEIGHT)
@@ -74,7 +73,8 @@ dragged_card = None
 dragged_image = None
 current_pile_suits = [random.randint(0, 3) for _ in range(10)]  # 0: hearts, 1: diamonds, 2: clubs, 3: spades
 card_suits = {}  # This will store the suit for each placed card
-
+card_face = {}
+ten_pile_face = random.randint(0, 3)  # 0: 10, 1: J, 2: Q, 3: K
 
 def initialize_card_piles():
     global card_piles, deck, current_pile_suits
@@ -88,7 +88,6 @@ def initialize_card_piles():
         else:  # 2-9
             card_piles[card - 2].append(card)
     current_pile_suits = [random.randint(0, 3) for _ in range(10)]
-
 
 def draw_card_piles():
     global ten_pile_face
@@ -109,7 +108,6 @@ def draw_slots():
     for slot in DEALER_SLOTS + PLAYER_SLOTS:
         pygame.draw.rect(screen, GRAY, (*slot, CARD_WIDTH, CARD_HEIGHT), 2)
 
-
 def draw_hands():
     for i, card in enumerate(dealer_hand):
         card_image = get_card_image(card, dealer_hand, i)
@@ -117,7 +115,6 @@ def draw_hands():
     for i, card in enumerate(player_hand):
         card_image = get_card_image(card, player_hand, i)
         screen.blit(card_images[card_image], PLAYER_SLOTS[i])
-
 
 def get_card_image(card_value, hand, index):
     global card_face
@@ -147,7 +144,6 @@ def get_card_image(card_value, hand, index):
     else:
         return (card_value - 1) + suit * 13
 
-
 def draw_probabilities():
     win_text = FONT.render(f"Win: {probabilities['win']:.2%}", True, BLACK)
     stand_text = FONT.render(f"Stand: {probabilities['stand']:.2%}", True, BLACK)
@@ -158,7 +154,6 @@ def draw_probabilities():
     screen.blit(stand_text, (950, 350))
     screen.blit(hit_text, (950, 400))
     screen.blit(bias_text, (950, 450))
-
 
 def draw_buttons():
     pygame.draw.rect(screen, LIGHT_GRAY, reset_button)
@@ -182,7 +177,6 @@ def draw_buttons():
     pygame.draw.rect(screen, LIGHT_GRAY, discard_button)
     discard_text = FONT.render("Discard All", True, BLACK)
     screen.blit(discard_text, (discard_button.x + 30, discard_button.y + 10))
-
 
 def card_to_value(card):
     if card == 11:
@@ -208,7 +202,6 @@ def calculate_probabilities():
         probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00}
         bias = 0.00
 
-
 def reset_game():
     global dealer_hand, player_hand, discard_pile, probabilities, bias, deck, card_suits, card_face, ten_pile_face
     dealer_hand = []
@@ -221,12 +214,10 @@ def reset_game():
     ten_pile_face = random.randint(0, 3)
     initialize_card_piles()
 
-
 def change_deck_size(change):
     global deck_size
     deck_size = max(1, min(8, deck_size + change))
     reset_game()
-
 
 def discard_all_cards():
     global dealer_hand, player_hand, discard_pile, card_suits
@@ -238,11 +229,12 @@ def discard_all_cards():
     player_hand = []
     card_suits.clear()
     print(f"Discard pile after discard: {discard_pile}")  # Debug print
+    print(f"Deck: {deck}")
 
 def return_card_to_pile(card, pile_index):
     global deck
     card_piles[pile_index].append(card)
-
+    deck.append(card)
 
 def draw_discard_pile():
     if discard_pile:
@@ -252,7 +244,6 @@ def draw_discard_pile():
 
     count = SMALL_FONT.render(str(len(discard_pile)), True, BLACK)
     screen.blit(count, (DISCARD_PILE_POS[0] + 5, DISCARD_PILE_POS[1] + CARD_HEIGHT + 5))
-
 
 def show_discard_popup():
     popup_width, popup_height = 300, 400
@@ -278,8 +269,6 @@ def show_discard_popup():
             y_offset += 30
         if y_offset > popup_height - 30:
             break
-
-
 
 def animate_discard(cards_to_discard):
     start_positions = [slot for slot in DEALER_SLOTS + PLAYER_SLOTS if slot[0] < DISCARD_PILE_POS[0]]
@@ -312,14 +301,23 @@ def animate_discard(cards_to_discard):
         pygame.display.flip()
         clock.tick(60)
 
-
+def return_card_to_original_pile(card):
+    global deck, card_piles, current_pile_suits
+    deck.append(card)
+    if card == 11:  # Ace
+        card_piles[9].append(card)
+    elif card == 10:  # 10, J, Q, K
+        card_piles[8].append(card)
+    else:  # 2-9
+        card_piles[card - 2].append(card)
+    current_pile_suits[card - 2 if card < 10 else 8 if card == 10 else 9] = random.randint(0, 3)
 
 
 # Main game loop
+
+
 running = True
 initialize_card_piles()
-card_face = {}
-ten_pile_face = random.randint(0, 3)  # 0: 10, 1: J, 2: Q, 3: K
 show_discard_info = False
 
 while running:
@@ -342,6 +340,27 @@ while running:
                 elif pygame.Rect(*DISCARD_PILE_POS, *DISCARD_PILE_SIZE).collidepoint(event.pos):
                     show_discard_info = True
                 else:
+                    # Check if a dealer slot was clicked
+                    for i, slot in enumerate(DEALER_SLOTS):
+                        if pygame.Rect(*slot, CARD_WIDTH, CARD_HEIGHT).collidepoint(event.pos) and i < len(dealer_hand):
+                            card_to_return = dealer_hand.pop(i)
+                            return_card_to_original_pile(card_to_return)
+                            # Remove the card's suit and face information
+                            card_suits = {k: v for k, v in card_suits.items() if k[1] != id(dealer_hand) or k[2] != i}
+                            card_face = {k: v for k, v in card_face.items() if k[1] != id(dealer_hand) or k[2] != i}
+                            break
+
+                    # Check if a player slot was clicked
+                    for i, slot in enumerate(PLAYER_SLOTS):
+                        if pygame.Rect(*slot, CARD_WIDTH, CARD_HEIGHT).collidepoint(event.pos) and i < len(player_hand):
+                            card_to_return = player_hand.pop(i)
+                            return_card_to_original_pile(card_to_return)
+                            # Remove the card's suit and face information
+                            card_suits = {k: v for k, v in card_suits.items() if k[1] != id(player_hand) or k[2] != i}
+                            card_face = {k: v for k, v in card_face.items() if k[1] != id(player_hand) or k[2] != i}
+                            break
+
+                    # Check if a pile was clicked (for dragging)
                     for i, pile_pos in enumerate(PILE_POSITIONS):
                         if pygame.Rect(*pile_pos, CARD_WIDTH, CARD_HEIGHT).collidepoint(event.pos) and card_piles[i]:
                             dragging = True
