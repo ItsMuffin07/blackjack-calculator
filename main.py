@@ -76,7 +76,7 @@ player_hand = []
 discard_pile = []
 deck = list(EMPTY_DECK)
 card_piles = [[] for _ in range(10)]  # 2-9, 10(including J,Q,K), A
-probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00}
+probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00, "bust": 0.00}
 bias = 0.00
 dragging = False
 dragged_card = None
@@ -123,8 +123,6 @@ def draw_percentage_bars():
     screen.blit(hit_text, hit_text_rect)
 
 
-
-
 def render_deck_size_text():
     deck_size_text = FONT.render(f"Deck Size: {deck_size}", True, TEXT)
     deck_size_text_rect = deck_size_text.get_rect(center=(1085, 75))
@@ -168,9 +166,45 @@ def draw_card_piles():
         count = SMALL_FONT.render(str(len(pile)), True, TEXT)
         screen.blit(count, (PILE_POSITIONS[i][0] + 5, PILE_POSITIONS[i][1] + CARD_HEIGHT + 5))
 
+# def draw_slots():
+#     for slot in DEALER_SLOTS + PLAYER_SLOTS:
+#         pygame.draw.rect(screen, BORDER, (*slot, CARD_WIDTH, CARD_HEIGHT), 2)
+
 def draw_slots():
+    # Draw slots
     for slot in DEALER_SLOTS + PLAYER_SLOTS:
         pygame.draw.rect(screen, BORDER, (*slot, CARD_WIDTH, CARD_HEIGHT), 2)
+
+    font = pygame.font.Font(None, 24)  # You can adjust the font size as needed
+
+    # Dealer label and value
+    dealer_label = font.render("Dealer", True, TEXT)
+    dealer_label_rect = dealer_label.get_rect(topleft=(10, 10))  # Position in the top-left corner (red circle area)
+    screen.blit(dealer_label, dealer_label_rect)
+
+    dealer_value = blackjack.blackjack(dealer_hand)
+    if dealer_value[0] == dealer_value[1]:
+        dealer_value = dealer_value[0]
+    else:
+        dealer_value = str(dealer_value[0])+"/"+str(dealer_value[1])
+    dealer_value_text = font.render(f"Value: {dealer_value}", True, TEXT)
+    dealer_value_rect = dealer_value_text.get_rect(topleft=(dealer_label_rect.right + 10, dealer_label_rect.top))
+    screen.blit(dealer_value_text, dealer_value_rect)
+
+    # Player label and value
+    player_label = font.render("Player", True, TEXT)
+    player_label_rect = player_label.get_rect(
+        bottomleft=(10, PLAYER_SLOTS[0][1] - 10))  # Position above the player slots (black circle area)
+    screen.blit(player_label, player_label_rect)
+
+    player_value = blackjack.blackjack(player_hand)
+    if player_value[0] == player_value[1]:
+        player_value = player_value[0]
+    else:
+        player_value = str(player_value[0]) + "/" + str(player_value[1])
+    player_value_text = font.render(f"Value: {player_value}", True, TEXT)
+    player_value_rect = player_value_text.get_rect(bottomleft=(player_label_rect.right + 10, player_label_rect.bottom))
+    screen.blit(player_value_text, player_value_rect)
 
 def draw_hands():
     for i, card in enumerate(dealer_hand):
@@ -215,11 +249,13 @@ def draw_probabilities():
     stand_text = FONT.render(f"Stand: {probabilities['stand']:.2%}", True, TEXT)
     hit_text = FONT.render(f"Hit: {probabilities['hit']:.2%}", True, TEXT)
     bias_text = FONT.render(f"Bias: {bias:.2f}", True, TEXT)
+    bust_text = FONT.render(f"Bust: {probabilities['bust']:.2%}", True, TEXT)
 
     screen.blit(win_text, (950, 300))
-    screen.blit(stand_text, (950, 350))
-    screen.blit(hit_text, (950, 400))
-    screen.blit(bias_text, (950, 450))
+    screen.blit(stand_text, (950, 340))
+    screen.blit(hit_text, (950, 380))
+    screen.blit(bias_text, (950, 420))
+    screen.blit(bust_text, (950, 460))
 
 def draw_buttons():
     pygame.draw.rect(screen, ACCENT, reset_button)
@@ -257,12 +293,13 @@ def calculate_probabilities():
                                                                                                      tuple(player_hand),
                                                                                                      tuple(dealer_hand))
         bias = blackjack.calculate_bias(EMPTY_DECK, tuple(deck))
+        probabilities["bust"] = blackjack.player_probability_busted(tuple(deck), tuple(player_hand))
 
         print("Player's hand:", [card_to_value(card) for card in player_hand])
         print("Dealer's hand:", [card_to_value(card) for card in dealer_hand])
         print("Remaining deck:", [card_to_value(card) for card in deck])
     else:
-        probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00}
+        probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00, "bust": 0.00}
         bias = 0.00
 
 def reset_game():
@@ -270,7 +307,7 @@ def reset_game():
     dealer_hand = []
     player_hand = []
     discard_pile = []
-    probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00}
+    probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00, "bust": 0.00}
     card_suits.clear()
     card_face.clear()
     ten_pile_face = random.randint(0, 3)

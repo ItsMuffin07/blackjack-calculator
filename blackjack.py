@@ -314,7 +314,6 @@ def calculate_all(deck: tuple, hand: tuple, dealer_card: tuple, debug: bool = Fa
 
 def calculate_bias(empty_deck: tuple, current_deck: tuple) -> float:
     """
-
     :param empty_deck:
     :param current_deck:
     :return: index of current deck's bias
