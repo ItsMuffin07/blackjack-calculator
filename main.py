@@ -1,3 +1,8 @@
+"""
+v0.1.6
+"""
+
+
 import pygame
 import sys
 import random
