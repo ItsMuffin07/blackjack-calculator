@@ -32,8 +32,8 @@ def blackjack(cards: list) -> list:
             total[0] += 11  # index 0 is the higher one
             total[1] += 1  # index 1 is the lower one
         else:  # When more than one ace
-            total[0] += card
-            total[1] += card
+            total[0] += 1
+            total[1] += 1
     if total[0] > 21 and total[1] > 21:  # Both busted
         return [1, 1]
     elif total[0] > 21 >= total[1]:  # Busted only when Ace is at 11
@@ -331,3 +331,5 @@ def calculate_bias(empty_deck: tuple, current_deck: tuple) -> float:
     index: float = (100 * (average_current_value - average_empty_value)) / average_empty_value
 
     return index
+
+print(blackjack([11,11,11]))

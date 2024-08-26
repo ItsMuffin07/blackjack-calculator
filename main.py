@@ -1,12 +1,13 @@
 """
 v0.1.6
 """
-
-
 import pygame
 import sys
 import random
 import math
+import csv
+from datetime import datetime
+import os
 
 import blackjack
 
@@ -42,6 +43,12 @@ BAR_X = 950
 BAR_Y = 250
 STAND_COLOR = (255, 0, 0)  # Bright green
 HIT_COLOR = (0, 255, 0)  # Bright yellow
+
+# Buttons
+BUTTON_WIDTH = 250
+BUTTON_HEIGHT = 50
+SMALL_BUTTON_WIDTH = (BUTTON_WIDTH + 10) / 2
+BUTTON_SPACING = 10
 
 # Load card images
 card_images = {}
@@ -91,6 +98,9 @@ card_suits = {}  # This will store the suit for each placed card
 card_face = {}
 ten_pile_face = random.randint(0, 3)  # 0: 10, 1: J, 2: Q, 3: K
 
+# Game logging
+game_log = []
+log_button_active = False
 
 def draw_percentage_bars():
     total_width = BAR_WIDTH
@@ -188,11 +198,12 @@ def draw_slots():
     screen.blit(dealer_label, dealer_label_rect)
 
     dealer_value = blackjack.blackjack(dealer_hand)
-    if dealer_value[0] == dealer_value[1]:
-        dealer_value = dealer_value[0]
-    else:
-        dealer_value = str(dealer_value[0])+"/"+str(dealer_value[1])
-    dealer_value_text = font.render(f"Value: {dealer_value}", True, TEXT)
+    if len(dealer_value) == 2 or dealer_value[0] == 0:
+        if dealer_value[0] == dealer_value[1]:
+            dealer_value = dealer_value[0]
+        else:
+            dealer_value = str(dealer_value[0])+"/"+str(dealer_value[1])
+    dealer_value_text = font.render(f"Value: {dealer_value}" if dealer_value != 1 else "BUST", True, TEXT)
     dealer_value_rect = dealer_value_text.get_rect(topleft=(dealer_label_rect.right + 10, dealer_label_rect.top))
     screen.blit(dealer_value_text, dealer_value_rect)
 
@@ -203,11 +214,12 @@ def draw_slots():
     screen.blit(player_label, player_label_rect)
 
     player_value = blackjack.blackjack(player_hand)
-    if player_value[0] == player_value[1]:
-        player_value = player_value[0]
-    else:
-        player_value = str(player_value[0]) + "/" + str(player_value[1])
-    player_value_text = font.render(f"Value: {player_value}", True, TEXT)
+    if len(player_value) == 2 or player_value[0] == 0:
+        if player_value[0] == player_value[1]:
+            player_value = player_value[0]
+        else:
+            player_value = str(player_value[0]) + "/" + str(player_value[1])
+    player_value_text = font.render(f"Value: {player_value}" if player_value != 1 else "BUST", True, TEXT)
     player_value_rect = player_value_text.get_rect(bottomleft=(player_label_rect.right + 10, player_label_rect.bottom))
     screen.blit(player_value_text, player_value_rect)
 
@@ -308,7 +320,7 @@ def calculate_probabilities():
         bias = 0.00
 
 def reset_game():
-    global dealer_hand, player_hand, discard_pile, probabilities, bias, deck, card_suits, card_face, ten_pile_face
+    global dealer_hand, player_hand, discard_pile, probabilities, bias, deck, card_suits, card_face, ten_pile_face, game_log, log_button_active
     dealer_hand = []
     player_hand = []
     discard_pile = []
@@ -318,14 +330,27 @@ def reset_game():
     ten_pile_face = random.randint(0, 3)
     initialize_card_piles()
     update_bias()
+    game_log = []
+    log_button_active = False
+    log_button.enabled = False
+
 def change_deck_size(change):
     global deck_size
     deck_size = max(1, min(8, deck_size + change))
     reset_game()
 
 def discard_all_cards():
-    global dealer_hand, player_hand, discard_pile, card_suits
+    global dealer_hand, player_hand, discard_pile, card_suits, game_log, log_button_active
     cards_to_discard = dealer_hand + player_hand
+    if cards_to_discard:
+        game_log.append({
+            'dealer_hand': dealer_hand.copy(),
+            'player_hand': player_hand.copy(),
+            'dealer_sum': sum(dealer_hand),
+            'player_sum': sum(player_hand)
+        })
+        log_button_active = True
+        log_button.enabled = True
     print(f"Cards being discarded: {cards_to_discard}")  # Debug print
     if cards_to_discard:  # Only animate and discard if there are cards to discard
         discard_pile.extend(cards_to_discard)
@@ -461,20 +486,64 @@ def return_card_to_original_pile(card):
     current_pile_suits[card - 2 if card < 10 else 8 if card == 10 else 9] = random.randint(0, 3)
     update_bias()
 
+
+def show_popup(message):
+    popup_font = pygame.font.Font(None, 24)
+    popup_text = popup_font.render(message, True, TEXT)
+    popup_rect = popup_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+
+    popup_bg = pygame.Surface((popup_rect.width + 20, popup_rect.height + 20))
+    popup_bg.fill(SECONDARY_BG)
+    popup_bg_rect = popup_bg.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+
+    screen.blit(popup_bg, popup_bg_rect)
+    screen.blit(popup_text, popup_rect)
+    pygame.display.flip()
+
+    pygame.time.wait(2000)  # Show the popup for 2 seconds
+
+def log_game():
+    global game_log, log_button_active
+    if not game_log:
+        return
+
+    log_dir = os.path.join(os.getcwd(), "game_logs")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    timestamp = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+    filename = f"blackjack_game_{timestamp}.csv"
+    filepath = os.path.join(log_dir, filename)
+
+    with open(filepath, 'w', newline='') as csvfile:
+        fieldnames = ['dealer_hand', 'player_hand', 'dealer_sum', 'player_sum']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for hand in game_log:
+            writer.writerow(hand)
+
+    show_popup(f"Game logged in {filepath}")
+    reset_game()
+    log_button_active = False
+    log_button.enabled = False
+    log_button.reset_state()
+
 class Button:
-    def __init__(self, x, y, width, height, text, font, action=None):
+    def __init__(self, x, y, width, height, text, font, action=None, enabled=True):
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
         self.font = font
         self.action = action
         self.is_hovered = False
         self.is_clicked = False
+        self.enabled = enabled
         self.original_y = y
         self.hover_offset = 3
         self.click_offset = 5
 
+
     def draw(self, surface):
-        color = ACCENT
+        color = ACCENT if self.enabled else (100, 100, 100)
         text_color = TEXT
         y_offset = 0
 
@@ -492,7 +561,9 @@ class Button:
         surface.blit(text_surf, text_rect)
 
     def handle_event(self, event):
-        if event.type == pygame.MOUSEMOTION:
+        if not self.enabled:
+            return
+        elif (event.type == pygame.MOUSEMOTION):
             self.is_hovered = self.rect.collidepoint(event.pos)
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1 and self.rect.collidepoint(event.pos):
@@ -503,14 +574,20 @@ class Button:
                 if self.rect.collidepoint(event.pos) and self.action:
                     self.action()
 
+    def reset_state(self):
+        self.is_hovered = False
+        self.is_clicked = False
+
 # Create button instances
-reset_button = Button(950, 700, 200, 50, "Reset", FONT, reset_game)
-calculate_button = Button(950, 600, 200, 50, "Calculate", FONT, calculate_probabilities)
+discard_button = Button(950, 500, BUTTON_WIDTH, BUTTON_HEIGHT, "Discard All", FONT, discard_all_cards)
+calculate_button = Button(950, 560, BUTTON_WIDTH, BUTTON_HEIGHT, "Calculate", FONT, calculate_probabilities)
+reset_button = Button(950, 700, SMALL_BUTTON_WIDTH, BUTTON_HEIGHT, "Reset", FONT, reset_game)
+log_button = Button(950 + SMALL_BUTTON_WIDTH + BUTTON_SPACING, 700, SMALL_BUTTON_WIDTH, BUTTON_HEIGHT, "Log Game", FONT, action=None, enabled=False)
+
 deck_size_minus_button = Button(950, 50, 50, 50, "-", FONT, lambda: change_deck_size(-1))
 deck_size_plus_button = Button(1170, 50, 50, 50, "+", FONT, lambda: change_deck_size(1))
-discard_button = Button(950, 500, 200, 50, "Discard All", FONT, discard_all_cards)
 
-buttons = [reset_button, calculate_button, deck_size_minus_button, deck_size_plus_button, discard_button]
+buttons = [calculate_button, deck_size_minus_button, deck_size_plus_button, discard_button, reset_button, log_button]
 
 # Main game loop
 running = True
@@ -575,6 +652,10 @@ while running:
                             update_bias()
                             break
 
+                # Handle log button click
+                if log_button.rect.collidepoint(event.pos) and log_button_active:
+                    log_game()
+
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1 and dragging:
                 card_placed = False
@@ -620,7 +701,6 @@ while running:
         button.draw(screen)
     render_deck_size_text()
     draw_discard_pile()
-
 
     if dragging and dragged_image:
         mouse_pos = pygame.mouse.get_pos()
