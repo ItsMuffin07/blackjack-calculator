@@ -227,6 +227,7 @@ def draw_slots():
     player_value_rect = player_value_text.get_rect(bottomleft=(player_label_rect.right + 10, player_label_rect.bottom))
     screen.blit(player_value_text, player_value_rect)
 
+
 def draw_hands():
     for i, card in enumerate(dealer_hand):
         draw_card_background(screen, DEALER_SLOTS[i])
@@ -236,6 +237,7 @@ def draw_hands():
         draw_card_background(screen, PLAYER_SLOTS[i])
         card_image = get_card_image(card, player_hand, i)
         screen.blit(card_images[card_image], PLAYER_SLOTS[i])
+
 
 def get_card_image(card_value, hand, index):
     global card_face
@@ -265,6 +267,7 @@ def get_card_image(card_value, hand, index):
     else:
         return (card_value - 1) + suit * 13
 
+
 def draw_probabilities():
     win_text = FONT.render(f"Win: {probabilities['win']:.2%}", True, TEXT)
     stand_text = FONT.render(f"Stand: {probabilities['stand']:.2%}", True, TEXT)
@@ -277,6 +280,7 @@ def draw_probabilities():
     screen.blit(hit_text, (950, 380))
     screen.blit(bias_text, (950, 420))
     screen.blit(bust_text, (950, 460))
+
 
 def draw_buttons():
     pygame.draw.rect(screen, ACCENT, reset_button)
@@ -294,10 +298,10 @@ def draw_buttons():
     screen.blit(minus_text, (deck_size_minus_button.x + 20, deck_size_minus_button.y + 10))
     screen.blit(plus_text, (deck_size_plus_button.x + 20, deck_size_plus_button.y + 10))
 
-
     pygame.draw.rect(screen, ACCENT, discard_button)
     discard_text = FONT.render("Discard All", True, TEXT)
     screen.blit(discard_text, (discard_button.x + 30, discard_button.y + 10))
+
 
 def card_to_value(card):
     if card == 11:
@@ -306,6 +310,7 @@ def card_to_value(card):
         return '10/J/Q/K'
     else:
         return str(card)
+
 
 def calculate_probabilities():
     global probabilities, bias, deck
@@ -323,8 +328,10 @@ def calculate_probabilities():
         probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00, "bust": 0.00}
         bias = 0.00
 
+
 def reset_game():
-    global dealer_hand, player_hand, discard_pile, probabilities, bias, deck, card_suits, card_face, ten_pile_face, game_log, log_button_active
+    global dealer_hand, player_hand, discard_pile, probabilities, bias, deck, \
+           card_suits, card_face, ten_pile_face, game_log, log_button_active
     dealer_hand = []
     player_hand = []
     discard_pile = []
@@ -337,10 +344,8 @@ def reset_game():
     game_log = []
     log_button_active = False
     log_button.enabled = False
-    deck_size_minus_active = deck_size > 1
-    deck_size_plus_active = deck_size < 8
-    deck_size_minus_button.enabled = deck_size_minus_active
-    deck_size_plus_button.enabled = deck_size_plus_active
+    deck_size_minus_button.enabled = deck_size > 1
+    deck_size_plus_button.enabled = deck_size < 8
 
 
 def change_deck_size(change):
@@ -378,10 +383,12 @@ def discard_all_cards():
         update_bias()
     print(f"Discard pile after discard: {discard_pile}")  # Debug print
 
+
 def return_card_to_pile(card, pile_index):
     global deck
     card_piles[pile_index].append(card)
     deck.append(card)
+
 
 def draw_discard_pile():
     if discard_pile:
@@ -391,6 +398,7 @@ def draw_discard_pile():
 
     count = SMALL_FONT.render(str(len(discard_pile)), True, TEXT)
     screen.blit(count, (DISCARD_PILE_POS[0] + 5, DISCARD_PILE_POS[1] + CARD_HEIGHT + 5))
+
 
 def show_discard_popup():
     popup_width, popup_height = 300, 400
@@ -491,6 +499,7 @@ def animate_discard(cards_to_discard):
     draw_discard_pile()
     pygame.display.flip()
 
+
 def return_card_to_original_pile(card):
     global deck, card_piles, current_pile_suits
     deck.append(card)
@@ -519,6 +528,7 @@ def show_popup(message):
 
     pygame.time.wait(2000)  # Show the popup for 2 seconds
 
+
 def log_game():
     global game_log, log_button_active
     if not game_log:
@@ -545,6 +555,7 @@ def log_game():
     log_button.enabled = False
     log_button.reset_state()
 
+
 class Button:
     def __init__(self, x, y, width, height, text, font, action=None, enabled=True):
         self.x = x
@@ -560,7 +571,6 @@ class Button:
         self.original_y = y
         self.hover_offset = 3
         self.click_offset = 5
-
 
     def draw(self, surface):
         color = ACCENT if self.enabled else GREYED
@@ -583,7 +593,7 @@ class Button:
     def handle_event(self, event):
         if not self.enabled:
             self.reset_state()
-        elif (event.type == pygame.MOUSEMOTION):
+        elif event.type == pygame.MOUSEMOTION:
             self.is_hovered = self.rect.collidepoint(event.pos)
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1 and self.rect.collidepoint(event.pos):
@@ -598,14 +608,18 @@ class Button:
         self.is_hovered = False
         self.is_clicked = False
 
+
 # Create button instances
 discard_button = Button(950, 500, BUTTON_WIDTH, BUTTON_HEIGHT, "Discard All", FONT, discard_all_cards)
 calculate_button = Button(950, 560, BUTTON_WIDTH, BUTTON_HEIGHT, "Calculate", FONT, calculate_probabilities)
 reset_button = Button(950, 700, SMALL_BUTTON_WIDTH, BUTTON_HEIGHT, "Reset", FONT, reset_game)
-log_button = Button(950 + SMALL_BUTTON_WIDTH + BUTTON_SPACING, 700, SMALL_BUTTON_WIDTH, BUTTON_HEIGHT, "Log Game", FONT, action=None, enabled=False)
+log_button = Button(950 + SMALL_BUTTON_WIDTH + BUTTON_SPACING, 700, SMALL_BUTTON_WIDTH, BUTTON_HEIGHT,
+                    "Log Game", FONT, action=None, enabled=False)
 
-deck_size_minus_button = Button(950, 50, 50, 50, "-", FONT, lambda: change_deck_size(-1), enabled=deck_size_minus_active)
-deck_size_plus_button = Button(1170, 50, 50, 50, "+", FONT, lambda: change_deck_size(1), enabled=deck_size_plus_active)
+deck_size_minus_button = Button(950, 50, 50, 50, "-", FONT, lambda: change_deck_size(-1),
+                                enabled=deck_size_minus_active)
+deck_size_plus_button = Button(1170, 50, 50, 50, "+", FONT, lambda: change_deck_size(1),
+                               enabled=deck_size_plus_active)
 
 buttons = [calculate_button, deck_size_minus_button, deck_size_plus_button, discard_button, reset_button, log_button]
 
