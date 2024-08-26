@@ -4,7 +4,6 @@ v0.1.6
 import pygame
 import sys
 import random
-import math
 import csv
 from datetime import datetime
 import os
@@ -28,6 +27,7 @@ SECONDARY_TEXT = (204, 204, 204)  # #CCCCCC
 ALERT = (196, 30, 58)  # #C41E3A
 HOVER = (14, 140, 83)  # #0E8C53
 BORDER = (184, 134, 11)  # #B8860B
+GREYED = (100, 100, 100)  # #646464
 
 # Fonts
 FONT = pygame.font.Font(None, 36)
@@ -79,7 +79,7 @@ spectral_deck_image = pygame.image.load("images/spectral_deck.png")
 spectral_deck_image = pygame.transform.scale(spectral_deck_image, DISCARD_PILE_SIZE)
 
 # Discard animation constants
-GATHERING_POINT = (590, 150)  # Center of the screen
+GATHERING_POINT = (590, 150)
 
 # Game state
 deck_size = 1
@@ -97,13 +97,15 @@ current_pile_suits = [random.randint(0, 3) for _ in range(10)]  # 0: hearts, 1: 
 card_suits = {}  # This will store the suit for each placed card
 card_face = {}
 ten_pile_face = random.randint(0, 3)  # 0: 10, 1: J, 2: Q, 3: K
-
-# Game logging
 game_log = []
+
+# Button active states
 log_button_active = False
+deck_size_minus_active = False
+deck_size_plus_active = True
+
 
 def draw_percentage_bars():
-    total_width = BAR_WIDTH
     total_probability = probabilities['stand']+probabilities['hit']
     if total_probability == 0:
         stand_width = 0
@@ -143,14 +145,18 @@ def render_deck_size_text():
     deck_size_text_rect = deck_size_text.get_rect(center=(1085, 75))
     screen.blit(deck_size_text, deck_size_text_rect)
 
+
 def update_bias():
     global bias
     full_deck = EMPTY_DECK * deck_size
     bias = blackjack.calculate_bias(full_deck, tuple(deck))
+
+
 def draw_card_background(surface, position):
     card_bg = pygame.Surface((CARD_WIDTH, CARD_HEIGHT))
     card_bg.fill((255, 255, 255))  # White background
     surface.blit(card_bg, position)
+
 
 def initialize_card_piles():
     global card_piles, deck, current_pile_suits
@@ -165,30 +171,28 @@ def initialize_card_piles():
             card_piles[card - 2].append(card)
     current_pile_suits = [random.randint(0, 3) for _ in range(10)]
 
+
 def draw_card_piles():
     global ten_pile_face
-    for i, pile in enumerate(card_piles):
+    for j, pile in enumerate(card_piles):
         if pile:
-            suit = current_pile_suits[i]
-            draw_card_background(screen, PILE_POSITIONS[i])
-            if i == 8:  # 10, J, Q, K pile
-                screen.blit(card_images[9 + ten_pile_face + suit * 13], PILE_POSITIONS[i])
-            elif i == 9:  # Ace pile
-                screen.blit(card_images[13 + suit * 13], PILE_POSITIONS[i])
+            suit = current_pile_suits[j]
+            draw_card_background(screen, PILE_POSITIONS[j])
+            if j == 8:  # 10, J, Q, K pile
+                screen.blit(card_images[9 + ten_pile_face + suit * 13], PILE_POSITIONS[j])
+            elif j == 9:  # Ace pile
+                screen.blit(card_images[13 + suit * 13], PILE_POSITIONS[j])
             else:
-                screen.blit(card_images[i + 1 + suit * 13], PILE_POSITIONS[i])
-        pygame.draw.rect(screen, BORDER, (*PILE_POSITIONS[i], CARD_WIDTH, CARD_HEIGHT), 2)
+                screen.blit(card_images[j + 1 + suit * 13], PILE_POSITIONS[j])
+        pygame.draw.rect(screen, BORDER, (*PILE_POSITIONS[j], CARD_WIDTH, CARD_HEIGHT), 2)
         count = SMALL_FONT.render(str(len(pile)), True, TEXT)
-        screen.blit(count, (PILE_POSITIONS[i][0] + 5, PILE_POSITIONS[i][1] + CARD_HEIGHT + 5))
+        screen.blit(count, (PILE_POSITIONS[j][0] + 5, PILE_POSITIONS[j][1] + CARD_HEIGHT + 5))
 
-# def draw_slots():
-#     for slot in DEALER_SLOTS + PLAYER_SLOTS:
-#         pygame.draw.rect(screen, BORDER, (*slot, CARD_WIDTH, CARD_HEIGHT), 2)
 
 def draw_slots():
     # Draw slots
-    for slot in DEALER_SLOTS + PLAYER_SLOTS:
-        pygame.draw.rect(screen, BORDER, (*slot, CARD_WIDTH, CARD_HEIGHT), 2)
+    for slots in DEALER_SLOTS + PLAYER_SLOTS:
+        pygame.draw.rect(screen, BORDER, (*slots, CARD_WIDTH, CARD_HEIGHT), 2)
 
     font = pygame.font.Font(None, 24)  # You can adjust the font size as needed
 
@@ -333,11 +337,24 @@ def reset_game():
     game_log = []
     log_button_active = False
     log_button.enabled = False
+    deck_size_minus_active = deck_size > 1
+    deck_size_plus_active = deck_size < 8
+    deck_size_minus_button.enabled = deck_size_minus_active
+    deck_size_plus_button.enabled = deck_size_plus_active
+
 
 def change_deck_size(change):
-    global deck_size
-    deck_size = max(1, min(8, deck_size + change))
-    reset_game()
+    global deck_size, deck_size_minus_active, deck_size_plus_active
+    new_deck_size = max(1, min(8, deck_size + change))
+    if new_deck_size != deck_size:
+        deck_size = new_deck_size
+        reset_game()
+
+    deck_size_minus_active = deck_size > 1
+    deck_size_plus_active = deck_size < 8
+    deck_size_minus_button.enabled = deck_size_minus_active
+    deck_size_plus_button.enabled = deck_size_plus_active
+
 
 def discard_all_cards():
     global dealer_hand, player_hand, discard_pile, card_suits, game_log, log_button_active
@@ -530,6 +547,9 @@ def log_game():
 
 class Button:
     def __init__(self, x, y, width, height, text, font, action=None, enabled=True):
+        self.x = x
+        self.y = y
+
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
         self.font = font
@@ -543,7 +563,7 @@ class Button:
 
 
     def draw(self, surface):
-        color = ACCENT if self.enabled else (100, 100, 100)
+        color = ACCENT if self.enabled else GREYED
         text_color = TEXT
         y_offset = 0
 
@@ -562,7 +582,7 @@ class Button:
 
     def handle_event(self, event):
         if not self.enabled:
-            return
+            self.reset_state()
         elif (event.type == pygame.MOUSEMOTION):
             self.is_hovered = self.rect.collidepoint(event.pos)
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -584,8 +604,8 @@ calculate_button = Button(950, 560, BUTTON_WIDTH, BUTTON_HEIGHT, "Calculate", FO
 reset_button = Button(950, 700, SMALL_BUTTON_WIDTH, BUTTON_HEIGHT, "Reset", FONT, reset_game)
 log_button = Button(950 + SMALL_BUTTON_WIDTH + BUTTON_SPACING, 700, SMALL_BUTTON_WIDTH, BUTTON_HEIGHT, "Log Game", FONT, action=None, enabled=False)
 
-deck_size_minus_button = Button(950, 50, 50, 50, "-", FONT, lambda: change_deck_size(-1))
-deck_size_plus_button = Button(1170, 50, 50, 50, "+", FONT, lambda: change_deck_size(1))
+deck_size_minus_button = Button(950, 50, 50, 50, "-", FONT, lambda: change_deck_size(-1), enabled=deck_size_minus_active)
+deck_size_plus_button = Button(1170, 50, 50, 50, "+", FONT, lambda: change_deck_size(1), enabled=deck_size_plus_active)
 
 buttons = [calculate_button, deck_size_minus_button, deck_size_plus_button, discard_button, reset_button, log_button]
 
@@ -593,6 +613,8 @@ buttons = [calculate_button, deck_size_minus_button, deck_size_plus_button, disc
 running = True
 initialize_card_piles()
 show_discard_info = False
+previous_suit = None
+dragged_face = None
 
 while running:
     for event in pygame.event.get():
