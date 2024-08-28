@@ -1,5 +1,5 @@
 """
-v0.1.6
+v0.2.0
 """
 import pygame
 import sys
@@ -321,9 +321,9 @@ def calculate_probabilities():
         bias = blackjack.calculate_bias(EMPTY_DECK, tuple(deck))
         probabilities["bust"] = blackjack.player_probability_busted(tuple(deck), tuple(player_hand))
 
-        print("Player's hand:", [card_to_value(card) for card in player_hand])
-        print("Dealer's hand:", [card_to_value(card) for card in dealer_hand])
-        print("Remaining deck:", [card_to_value(card) for card in deck])
+        # print("Player's hand:", [card_to_value(card) for card in player_hand])
+        # print("Dealer's hand:", [card_to_value(card) for card in dealer_hand])
+        # print("Remaining deck:", [card_to_value(card) for card in deck])
     else:
         probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00, "bust": 0.00}
         bias = 0.00
@@ -368,12 +368,12 @@ def discard_all_cards():
         game_log.append({
             'dealer_hand': dealer_hand.copy(),
             'player_hand': player_hand.copy(),
-            'dealer_sum': sum(dealer_hand),
-            'player_sum': sum(player_hand)
+            'dealer_sum': blackjack.blackjack(dealer_hand),
+            'player_sum': blackjack.blackjack(player_hand),
         })
         log_button_active = True
         log_button.enabled = True
-    print(f"Cards being discarded: {cards_to_discard}")  # Debug print
+    # print(f"Cards being discarded: {cards_to_discard}")  # Debug print
     if cards_to_discard:  # Only animate and discard if there are cards to discard
         discard_pile.extend(cards_to_discard)
         dealer_hand = []
@@ -381,7 +381,7 @@ def discard_all_cards():
         animate_discard(cards_to_discard)
         card_suits.clear()
         update_bias()
-    print(f"Discard pile after discard: {discard_pile}")  # Debug print
+    # print(f"Discard pile after discard: {discard_pile}")  # Debug print
 
 
 def return_card_to_pile(card, pile_index):
@@ -538,7 +538,7 @@ def log_game():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    timestamp = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+    timestamp = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
     filename = f"blackjack_game_{timestamp}.csv"
     filepath = os.path.join(log_dir, filename)
 
