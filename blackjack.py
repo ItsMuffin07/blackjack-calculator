@@ -181,6 +181,7 @@ def card_probabilities(deck: tuple, current_hand: tuple, value: int) -> float:
 
     return value_probability
 
+
 @lru_cache(maxsize=CACHE_MAXSIZE)
 def player_probability_busted(deck: tuple, hand: tuple) -> float:
     """

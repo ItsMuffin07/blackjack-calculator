@@ -26,7 +26,8 @@ class BlackjackAnalyzer(tk.Tk):
         # Initial calculation
         self.update_grid()
 
-    def _create_standard_deck(self) -> List[int]:
+    @staticmethod
+    def _create_standard_deck() -> List[int]:
         """Create a standard 52-card deck represented as values"""
         deck = []
         for i in range(2, 10):
@@ -35,7 +36,8 @@ class BlackjackAnalyzer(tk.Tk):
         deck.extend([11] * 4)
         return deck
 
-    def _load_probability_cache(self) -> Dict:
+    @staticmethod
+    def _load_probability_cache() -> Dict:
         """Load all probabilities from CSV files"""
         cache = {}
         for dealer_card in range(2, 12):
@@ -119,7 +121,8 @@ class BlackjackAnalyzer(tk.Tk):
             self.grid_frame.grid_columnconfigure(i, weight=1)
             self.grid_frame.grid_rowconfigure(i, weight=1)
 
-    def _get_color(self, probability: float, is_hit: bool) -> str:
+    @staticmethod
+    def _get_color(probability: float, is_hit: bool) -> str:
         """Generate color based on probability - darker means higher probability"""
         enhanced_prob = probability ** 1.5
         darkness = 1.0 - (enhanced_prob * 0.85)
