@@ -181,7 +181,7 @@ def card_probabilities(deck: tuple, current_hand: tuple, value: int) -> float:
 
     return value_probability
 
-
+@lru_cache(maxsize=CACHE_MAXSIZE)
 def player_probability_busted(deck: tuple, hand: tuple) -> float:
     """
     :param deck: The remaining deck before drawing
@@ -259,7 +259,7 @@ def calculate_stand(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
             case_probability = dealer_probability(deck=deck, dealer_hand=dealer_card, value=i)
 
             winning_probability += case_probability
-    print(f"Dealer busting probability: {busting_probability}")
+    # print(f"Dealer busting probability: {busting_probability}")
     return winning_probability
 
 

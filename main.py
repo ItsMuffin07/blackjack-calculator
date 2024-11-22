@@ -207,6 +207,8 @@ def draw_slots():
             dealer_value = dealer_value[0]
         else:
             dealer_value = str(dealer_value[0])+"/"+str(dealer_value[1])
+    else:
+        dealer_value = str(dealer_value[0])
     dealer_value_text = font.render(f"Value: {dealer_value}" if dealer_value != 1 else "BUST", True, TEXT)
     dealer_value_rect = dealer_value_text.get_rect(topleft=(dealer_label_rect.right + 10, dealer_label_rect.top))
     screen.blit(dealer_value_text, dealer_value_rect)
@@ -223,6 +225,8 @@ def draw_slots():
             player_value = player_value[0]
         else:
             player_value = str(player_value[0]) + "/" + str(player_value[1])
+    else:
+        player_value = str(player_value[0])
     player_value_text = font.render(f"Value: {player_value}" if player_value != 1 else "BUST", True, TEXT)
     player_value_rect = player_value_text.get_rect(bottomleft=(player_label_rect.right + 10, player_label_rect.bottom))
     screen.blit(player_value_text, player_value_rect)
@@ -320,10 +324,6 @@ def calculate_probabilities():
                                                                                                      tuple(dealer_hand))
         bias = blackjack.calculate_bias(EMPTY_DECK, tuple(deck))
         probabilities["bust"] = blackjack.player_probability_busted(tuple(deck), tuple(player_hand))
-
-        # print("Player's hand:", [card_to_value(card) for card in player_hand])
-        # print("Dealer's hand:", [card_to_value(card) for card in dealer_hand])
-        # print("Remaining deck:", [card_to_value(card) for card in deck])
     else:
         probabilities = {"win": 0.00, "stand": 0.00, "hit": 0.00, "bust": 0.00}
         bias = 0.00
@@ -557,7 +557,17 @@ def log_game():
 
 
 class Button:
-    def __init__(self, x, y, width, height, text, font, action=None, enabled=True):
+    def __init__(self, x, y, width, height, text="Button", font=FONT, action=None, enabled=True):
+        """
+        :param x: X coordinate
+        :param y: Y coordinate
+        :param width: width of the button
+        :param height: height of the button
+        :param text: text to display on button
+        :param font: pygame.font.Font object
+        :param action: function of button
+        :param enabled: Variable that determines whether button is enabled / disabled
+        """
         self.x = x
         self.y = y
 
