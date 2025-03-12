@@ -1,5 +1,6 @@
 """
 v0.2.0
+Blackjack Probability Calculator - A visual tool for calculating odds in blackjack
 """
 import pygame
 import sys
@@ -10,7 +11,7 @@ import os
 
 import blackjack
 
-# Initialize Pygame
+# Initialise Pygame
 pygame.init()
 
 # Screen dimensions
@@ -44,10 +45,10 @@ BAR_Y = 250
 STAND_COLOR = (255, 0, 0)  # Bright green
 HIT_COLOR = (0, 255, 0)  # Bright yellow
 
-# Buttons
+# Standard Buttons
 BUTTON_WIDTH = 250
 BUTTON_HEIGHT = 50
-SMALL_BUTTON_WIDTH = (BUTTON_WIDTH + 10) / 2
+SMALL_BUTTON_WIDTH = int((BUTTON_WIDTH + 10) / 2)
 BUTTON_SPACING = 10
 
 # Load card images
@@ -105,8 +106,15 @@ deck_size_minus_active = False
 deck_size_plus_active = True
 
 
-def draw_percentage_bars():
-    total_probability = probabilities['stand']+probabilities['hit']
+def draw_percentage_bars() -> None:
+    """
+    Draw visual bars representing the probability of winning when standing vs hitting.
+
+    The bars show relative probability of success for each action. Red bar for
+    standing and green bar for hitting. Width of each bar is proportional to the
+    respective probability.
+    """
+    total_probability = probabilities['stand'] + probabilities['hit']
     if total_probability == 0:
         stand_width = 0
         hit_width = 0
@@ -140,25 +148,52 @@ def draw_percentage_bars():
     screen.blit(hit_text, hit_text_rect)
 
 
-def render_deck_size_text():
+def render_deck_size_text() -> None:
+    """
+    Display the current deck size on the screen.
+
+    Renders the text showing the number of decks in play and centers it
+    at a predefined position.
+    """
     deck_size_text = FONT.render(f"Deck Size: {deck_size}", True, TEXT)
     deck_size_text_rect = deck_size_text.get_rect(center=(1085, 75))
     screen.blit(deck_size_text, deck_size_text_rect)
 
 
-def update_bias():
+def update_bias() -> None:
+    """
+    Update the bias value based on the current deck composition.
+
+    Calculates the deck bias by comparing the current deck to a full deck,
+    which indicates whether the remaining cards favor the player or dealer.
+    """
     global bias
     full_deck = EMPTY_DECK * deck_size
     bias = blackjack.calculate_bias(full_deck, tuple(deck))
 
 
-def draw_card_background(surface, position):
+def draw_card_background(surface: pygame.Surface, position: tuple) -> None:
+    """
+    Draw a white background for a card at the specified position.
+
+    :param surface: The pygame surface to draw on
+    :param position: A tuple of (x, y) coordinates for the top-left corner
+    """
     card_bg = pygame.Surface((CARD_WIDTH, CARD_HEIGHT))
     card_bg.fill((255, 255, 255))  # White background
     surface.blit(card_bg, position)
 
 
-def initialize_card_piles():
+def initialise_card_piles() -> None:
+    """
+    Initialise all card piles with the appropriate cards from the deck.
+
+    Creates 10 card piles representing different card values:
+    - Piles 0-7: Cards 2-9
+    - Pile 8: All 10-value cards (10, J, Q, K)
+    - Pile 9: Aces
+    Also assigns random suits to each pile.
+    """
     global card_piles, deck, current_pile_suits
     card_piles = [[] for _ in range(10)]
     deck = list(EMPTY_DECK) * deck_size
@@ -172,7 +207,13 @@ def initialize_card_piles():
     current_pile_suits = [random.randint(0, 3) for _ in range(10)]
 
 
-def draw_card_piles():
+def draw_card_piles() -> None:
+    """
+    Draw all card piles on the screen.
+
+    Displays each pile with appropriate card images, shows the count of
+    cards in each pile, and handles the special cases of face cards and aces.
+    """
     global ten_pile_face
     for j, pile in enumerate(card_piles):
         if pile:
@@ -189,7 +230,13 @@ def draw_card_piles():
         screen.blit(count, (PILE_POSITIONS[j][0] + 5, PILE_POSITIONS[j][1] + CARD_HEIGHT + 5))
 
 
-def draw_slots():
+def draw_slots() -> None:
+    """
+    Draw the card slots for both dealer and player hands.
+
+    Creates empty rectangles for card placement and displays labels
+    for dealer and player along with their current hand values.
+    """
     # Draw slots
     for slots in DEALER_SLOTS + PLAYER_SLOTS:
         pygame.draw.rect(screen, BORDER, (*slots, CARD_WIDTH, CARD_HEIGHT), 2)
@@ -206,7 +253,7 @@ def draw_slots():
         if dealer_value[0] == dealer_value[1]:
             dealer_value = dealer_value[0]
         else:
-            dealer_value = str(dealer_value[0])+"/"+str(dealer_value[1])
+            dealer_value = str(dealer_value[0]) + "/" + str(dealer_value[1])
     else:
         dealer_value = str(dealer_value[0])
     dealer_value_text = font.render(f"Value: {dealer_value}" if dealer_value != 1 else "BUST", True, TEXT)
@@ -232,7 +279,13 @@ def draw_slots():
     screen.blit(player_value_text, player_value_rect)
 
 
-def draw_hands():
+def draw_hands() -> None:
+    """
+    Draw all cards in both the dealer's and player's hands.
+
+    Renders the appropriate card images in their respective slots based on
+    the current state of the hands.
+    """
     for i, card in enumerate(dealer_hand):
         draw_card_background(screen, DEALER_SLOTS[i])
         card_image = get_card_image(card, dealer_hand, i)
@@ -243,7 +296,18 @@ def draw_hands():
         screen.blit(card_images[card_image], PLAYER_SLOTS[i])
 
 
-def get_card_image(card_value, hand, index):
+def get_card_image(card_value: int, hand: list = None, index: int = None) -> int:
+    """
+    Determine the appropriate card image for a given card value.
+
+    :param card_value: The numerical value of the card (2-11)
+    :param hand: The hand the card belongs to (None if dragging)
+    :param index: The position in the hand (None if dragging)
+    :return: The index of the card image to display
+
+    This function handles suit consistency and special cases for face cards
+    and aces, ensuring the same card always has the same appearance.
+    """
     global card_face
     if hand is None or index is None:  # For dragging or discarding
         suit = random.randint(0, 3)
@@ -272,7 +336,13 @@ def get_card_image(card_value, hand, index):
         return (card_value - 1) + suit * 13
 
 
-def draw_probabilities():
+def draw_probabilities() -> None:
+    """
+    Display the calculated probabilities on the screen.
+
+    Shows the win probability, stand probability, hit probability, deck bias,
+    and bust probability in a formatted text display.
+    """
     win_text = FONT.render(f"Win: {probabilities['win']:.2%}", True, TEXT)
     stand_text = FONT.render(f"Stand: {probabilities['stand']:.2%}", True, TEXT)
     hit_text = FONT.render(f"Hit: {probabilities['hit']:.2%}", True, TEXT)
@@ -286,7 +356,12 @@ def draw_probabilities():
     screen.blit(bust_text, (950, 460))
 
 
-def draw_buttons():
+def draw_buttons() -> None:
+    """
+    Draw all buttons on the screen.
+
+    Renders each button with its text label at the appropriate position.
+    """
     pygame.draw.rect(screen, ACCENT, reset_button)
     reset_text = FONT.render("Reset", True, TEXT)
     screen.blit(reset_text, (reset_button.x + 60, reset_button.y + 10))
@@ -307,7 +382,18 @@ def draw_buttons():
     screen.blit(discard_text, (discard_button.x + 30, discard_button.y + 10))
 
 
-def card_to_value(card):
+def card_to_value(card: int) -> str:
+    """
+    Convert card numerical value to a displayable string.
+
+    :param card: The numerical value of the card (2-11)
+    :return: A string representation of the card value
+
+    Converts:
+    - 11 to 'A' (Ace)
+    - 10 to '10/J/Q/K' (Face cards)
+    - Others to their string value
+    """
     if card == 11:
         return 'A'
     elif card == 10:
@@ -316,7 +402,19 @@ def card_to_value(card):
         return str(card)
 
 
-def calculate_probabilities():
+def calculate_probabilities() -> None:
+    """
+    Calculate probabilities for the current game state.
+
+    Uses the imported blackjack module to calculate:
+    - Win probability
+    - Stand probability
+    - Hit probability
+    - Bust probability
+    - Deck bias
+
+    Only calculates if both dealer and player have cards.
+    """
     global probabilities, bias, deck
     if dealer_hand and player_hand:
         probabilities["win"], probabilities["stand"], probabilities["hit"] = blackjack.calculate_all(tuple(deck),
@@ -329,9 +427,16 @@ def calculate_probabilities():
         bias = 0.00
 
 
-def reset_game():
+def reset_game() -> None:
+    """
+    Reset the game to its initial state.
+
+    Clears dealer and player hands, discard pile, probabilities,
+    and resets all card-related variables. Reinitialise the card piles
+    and updates the bias value.
+    """
     global dealer_hand, player_hand, discard_pile, probabilities, bias, deck, \
-           card_suits, card_face, ten_pile_face, game_log, log_button_active
+        card_suits, card_face, ten_pile_face, game_log, log_button_active
     dealer_hand = []
     player_hand = []
     discard_pile = []
@@ -339,7 +444,7 @@ def reset_game():
     card_suits.clear()
     card_face.clear()
     ten_pile_face = random.randint(0, 3)
-    initialize_card_piles()
+    initialise_card_piles()
     update_bias()
     game_log = []
     log_button_active = False
@@ -348,7 +453,16 @@ def reset_game():
     deck_size_plus_button.enabled = deck_size < 8
 
 
-def change_deck_size(change):
+def change_deck_size(change: int) -> None:
+    """
+    Change the number of decks used in the game.
+
+    :param change: The amount to change the deck size by (positive or negative)
+
+    Updates the deck size within valid bounds (1-8) and resets the game
+    if the size actually changes. Also updates button states based on
+    the new deck size.
+    """
     global deck_size, deck_size_minus_active, deck_size_plus_active
     new_deck_size = max(1, min(8, deck_size + change))
     if new_deck_size != deck_size:
@@ -361,7 +475,13 @@ def change_deck_size(change):
     deck_size_plus_button.enabled = deck_size_plus_active
 
 
-def discard_all_cards():
+def discard_all_cards() -> None:
+    """
+    Discard all cards from dealer and player hands.
+
+    Adds the current hands to the game log, moves all cards to the discard pile,
+    clears the hands, animates the discard process, and updates the bias.
+    """
     global dealer_hand, player_hand, discard_pile, card_suits, game_log, log_button_active
     cards_to_discard = dealer_hand + player_hand
     if cards_to_discard:
@@ -384,13 +504,28 @@ def discard_all_cards():
     # print(f"Discard pile after discard: {discard_pile}")  # Debug print
 
 
-def return_card_to_pile(card, pile_index):
+def return_card_to_pile(card: int, pile_index: int) -> None:
+    """
+    Return a card to its appropriate pile.
+
+    :param card: The card value to return
+    :param pile_index: The index of the pile to return the card to
+
+    This is used when cards are being dragged but not dropped into a valid location.
+    """
     global deck
     card_piles[pile_index].append(card)
     deck.append(card)
 
 
-def draw_discard_pile():
+def draw_discard_pile() -> None:
+    """
+    Draw the discard pile on the screen.
+
+    If there are cards in the discard pile, shows a spectral deck image.
+    Otherwise, shows an empty rectangle. Also displays the count of
+    cards in the discard pile.
+    """
     if discard_pile:
         screen.blit(spectral_deck_image, DISCARD_PILE_POS)
     else:
@@ -400,7 +535,12 @@ def draw_discard_pile():
     screen.blit(count, (DISCARD_PILE_POS[0] + 5, DISCARD_PILE_POS[1] + CARD_HEIGHT + 5))
 
 
-def show_discard_popup():
+def show_discard_popup() -> None:
+    """
+    Display a popup showing the contents of the discard pile.
+
+    Shows a window with the count of each card value in the discard pile.
+    """
     popup_width, popup_height = 300, 400
     popup_x = DISCARD_PILE_POS[0] - popup_width - 10
     popup_y = DISCARD_PILE_POS[1]
@@ -426,9 +566,17 @@ def show_discard_popup():
             break
 
 
-def animate_discard(cards_to_discard):
+def animate_discard(cards_to_discard: list) -> None:
+    """
+    Animate the process of discarding cards.
+
+    :param cards_to_discard: A list of cards to be discarded
+
+    Creates a smooth animation of cards moving from their positions
+    to a gathering point and then to the discard pile.
+    """
     start_positions = [slot for slot in DEALER_SLOTS + PLAYER_SLOTS if slot[0] < DISCARD_PILE_POS[0]]
-    end_position = (DISCARD_PILE_POS[0] + CARD_WIDTH/2, DISCARD_PILE_POS[1] + CARD_HEIGHT / 2)
+    end_position = (DISCARD_PILE_POS[0] + CARD_WIDTH / 2, DISCARD_PILE_POS[1] + CARD_HEIGHT / 2)
 
     clock = pygame.time.Clock()
     total_animation_duration = 2000  # milliseconds
@@ -500,7 +648,15 @@ def animate_discard(cards_to_discard):
     pygame.display.flip()
 
 
-def return_card_to_original_pile(card):
+def return_card_to_original_pile(card: int) -> None:
+    """
+    Return a card to its original pile after being removed from a hand.
+
+    :param card: The card value to return
+
+    Adds the card back to the appropriate pile based on its value and
+    updates the deck and bias.
+    """
     global deck, card_piles, current_pile_suits
     deck.append(card)
     if card == 11:  # Ace
@@ -513,7 +669,14 @@ def return_card_to_original_pile(card):
     update_bias()
 
 
-def show_popup(message):
+def show_popup(message: str) -> None:
+    """
+    Show a temporary popup message on the screen.
+
+    :param message: The text message to display
+
+    Creates a popup with the given message and displays it for 2 seconds.
+    """
     popup_font = pygame.font.Font(None, 24)
     popup_text = popup_font.render(message, True, TEXT)
     popup_rect = popup_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
@@ -529,7 +692,14 @@ def show_popup(message):
     pygame.time.wait(2000)  # Show the popup for 2 seconds
 
 
-def log_game():
+def log_game() -> None:
+    """
+    Save the current game log to a CSV file.
+
+    Creates a timestamped CSV file in the game_logs directory with
+    details of all hands played in the current session.
+    Shows a popup with the file path when complete.
+    """
     global game_log, log_button_active
     if not game_log:
         return
@@ -557,16 +727,37 @@ def log_game():
 
 
 class Button:
-    def __init__(self, x, y, width, height, text="Button", font=FONT, action=None, enabled=True):
+    """
+    A class to represent an interactive button in the game.
+
+    Attributes:
+        x (int): X-coordinate of the button
+        y (int): Y-coordinate of the button
+        rect (pygame.Rect): Rectangle representing the button area
+        text (str): Text to display on the button
+        font (pygame.font.Font): Font to use for the text
+        action (function): Function to call when button is clicked
+        is_hovered (bool): Whether the mouse is hovering over the button
+        is_clicked (bool): Whether the button is being clicked
+        enabled (bool): Whether the button is currently enabled
+        original_y (int): Original Y-coordinate for animation
+        hover_offset (int): Pixel offset for hover animation
+        click_offset (int): Pixel offset for click animation
+    """
+
+    def __init__(self, x: int, y: int, width: int, height: int, text: str = "Button",
+                 font: pygame.font.Font = FONT, action=None, enabled: bool = True):
         """
+        Initialise a new button.
+
         :param x: X coordinate
         :param y: Y coordinate
-        :param width: width of the button
-        :param height: height of the button
-        :param text: text to display on button
+        :param width: Width of the button
+        :param height: Height of the button
+        :param text: Text to display on button
         :param font: pygame.font.Font object
-        :param action: function of button
-        :param enabled: Variable that determines whether button is enabled / disabled
+        :param action: Function to call when button is clicked
+        :param enabled: Whether button is enabled or disabled
         """
         self.x = x
         self.y = y
@@ -582,7 +773,15 @@ class Button:
         self.hover_offset = 3
         self.click_offset = 5
 
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
+        """
+        Draw the button on the specified surface.
+
+        :param surface: The pygame surface to draw on
+
+        Draws the button with appropriate colors and offsets based on
+        its current state (normal, hovered, clicked, disabled).
+        """
         color = ACCENT if self.enabled else GREYED
         text_color = TEXT
         y_offset = 0
@@ -600,7 +799,15 @@ class Button:
         text_rect.y += y_offset
         surface.blit(text_surf, text_rect)
 
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """
+        Handle pygame events related to this button.
+
+        :param event: A pygame event
+
+        Updates the button's state based on mouse movement and clicks,
+        and calls the button's action when clicked if enabled.
+        """
         if not self.enabled:
             self.reset_state()
         elif event.type == pygame.MOUSEMOTION:
@@ -614,7 +821,12 @@ class Button:
                 if self.rect.collidepoint(event.pos) and self.action:
                     self.action()
 
-    def reset_state(self):
+    def reset_state(self) -> None:
+        """
+        Reset the button's hover and click states.
+
+        Used when disabling the button or when needing to reset its visual state.
+        """
         self.is_hovered = False
         self.is_clicked = False
 
@@ -635,7 +847,7 @@ buttons = [calculate_button, deck_size_minus_button, deck_size_plus_button, disc
 
 # Main game loop
 running = True
-initialize_card_piles()
+initialise_card_piles()
 show_discard_info = False
 previous_suit = None
 dragged_face = None

@@ -1,8 +1,6 @@
 """
 blackjack.py : all functions related to calculating blackjack probability
-
 """
-
 
 from functools import lru_cache
 from time import time
@@ -18,11 +16,13 @@ CACHE_MAXSIZE = 20_000
 
 def blackjack(cards: list) -> list:
     """
-    :param cards: list of cards in deck
-    :return: list containing total value, index 0 is the higher value if there is an ace
-             returns [1,1] if game is over
-             returns [value] when at 11, game is busted
-             returns [higher value, lower value] for both combinations of ace
+    Calculate the total value of a blackjack hand.
+
+    :param cards: List of cards in the hand
+    :return: List containing total value(s):
+             - [1, 1] if the game is busted
+             - [value] when at 11 or higher
+             - [higher value, lower value] when hand contains aces
     """
     total = [0, 0]
     for card in cards:
@@ -46,10 +46,12 @@ def blackjack(cards: list) -> list:
 @lru_cache(maxsize=CACHE_MAXSIZE)
 def dealer_probability_busted(deck: tuple, dealer_hand: tuple, stand_value: int) -> float:
     """
-    :param deck: current remaining branch deck
-    :param dealer_hand: current branch hand
-    :param stand_value: the stand value of the dealer
-    :return: probability of current branch busting
+    Calculate the probability of the dealer busting.
+
+    :param deck: Tuple containing the remaining cards in the deck
+    :param dealer_hand: Tuple containing the dealer's current hand
+    :param stand_value: The minimum value at which the dealer must stand
+    :return: Probability (0.0-1.0) of the dealer busting
     """
     deck = list(deck)
     dealer_hand = list(dealer_hand)
@@ -89,10 +91,12 @@ def dealer_probability_busted(deck: tuple, dealer_hand: tuple, stand_value: int)
 @lru_cache(maxsize=CACHE_MAXSIZE)
 def dealer_probability(deck: tuple, dealer_hand: tuple, value: int) -> float:
     """
-    :param deck: current remaining branch deck
-    :param dealer_hand: current branch hand
-    :param value: target value
-    :return: probability of current branch getting exact value
+    Calculate the probability of the dealer getting an exact hand value.
+
+    :param deck: Tuple containing the remaining cards in the deck
+    :param dealer_hand: Tuple containing the dealer's current hand
+    :param value: The target hand value to calculate probability for
+    :return: Probability (0.0-1.0) of dealer getting exactly this value
     """
     deck = list(deck)
     dealer_hand = list(dealer_hand)
@@ -138,10 +142,12 @@ def dealer_probability(deck: tuple, dealer_hand: tuple, value: int) -> float:
 @lru_cache(maxsize=CACHE_MAXSIZE)
 def card_probabilities(deck: tuple, current_hand: tuple, value: int) -> float:
     """
-    :param deck: current remaining branch deck
-    :param current_hand: current branch hand
-    :param value: the probability of getting a certain value
-    :return: probability of current branch obtaining certain valid value or above
+    Calculate the probability of getting a hand value equal to or greater than the target.
+
+    :param deck: Tuple containing the remaining cards in the deck
+    :param current_hand: Tuple containing the current hand cards
+    :param value: The minimum target value to calculate probability for
+    :return: Probability (0.0-1.0) of achieving the target value or higher
     """
     deck = list(deck)
     current_hand = list(current_hand)
@@ -185,9 +191,11 @@ def card_probabilities(deck: tuple, current_hand: tuple, value: int) -> float:
 @lru_cache(maxsize=CACHE_MAXSIZE)
 def player_probability_busted(deck: tuple, hand: tuple) -> float:
     """
-    :param deck: The remaining deck before drawing
-    :param hand: Player's cards
-    :return: Probability of busting when pulling one card
+    Calculate the probability of the player busting if they hit (draw one more card).
+
+    :param deck: Tuple containing the remaining cards in the deck
+    :param hand: Tuple containing the player's current hand
+    :return: Probability (0.0-1.0) of busting when drawing one more card
     """
     hand = list(hand)
     deck = list(deck)
@@ -214,10 +222,12 @@ def player_probability_busted(deck: tuple, hand: tuple) -> float:
 
 def calculate_win(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
     """
-    :param deck: The remaining deck
-    :param hand: Player's hand
-    :param dealer_card: Dealer's card
-    :return: Total winning probability
+    Calculate the total probability of winning.
+
+    :param deck: Tuple containing the remaining cards in the deck
+    :param hand: Tuple containing the player's current hand
+    :param dealer_card: Tuple containing the dealer's current hand
+    :return: Probability (0.0-1.0) of winning overall
     """
     winning_probability: float = 0.0
 
@@ -239,10 +249,12 @@ def calculate_win(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
 
 def calculate_stand(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
     """
-    :param deck: The remaining deck
-    :param hand: Player's hand
-    :param dealer_card: Dealer's card
-    :return: winning probability if stand
+    Calculate the probability of winning if the player stands.
+
+    :param deck: Tuple containing the remaining cards in the deck
+    :param hand: Tuple containing the player's current hand
+    :param dealer_card: Tuple containing the dealer's current hand
+    :return: Probability (0.0-1.0) of winning if the player stands
     """
     winning_probability: float = 0.0
 
@@ -266,10 +278,12 @@ def calculate_stand(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
 
 def calculate_hit(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
     """
-    :param deck: The remaining deck
-    :param hand: Player's hand
-    :param dealer_card: Dealer's card
-    :return: probability of a win if hit
+    Calculate the probability of winning if the player hits.
+
+    :param deck: Tuple containing the remaining cards in the deck
+    :param hand: Tuple containing the player's current hand
+    :param dealer_card: Tuple containing the dealer's current hand
+    :return: Probability (0.0-1.0) of winning if the player hits
     """
     stand = calculate_stand(deck=deck, hand=hand, dealer_card=dealer_card)
     win = calculate_win(deck=deck, hand=hand, dealer_card=dealer_card)
@@ -279,11 +293,13 @@ def calculate_hit(deck: tuple, hand: tuple, dealer_card: tuple) -> float:
 
 def calculate_all(deck: tuple, hand: tuple, dealer_card: tuple, debug: bool = False) -> tuple[float, float, float]:
     """
-    :param deck: The remaining deck
-    :param hand: Player's hand
-    :param dealer_card: Dealer's card
-    :param debug: Enables / Disables printing of timestamp to run code (Optional, default = False)
-    :return: total winning probability, winning probability if standing, winning probability if hitting
+    Calculate all key probabilities for the current game state.
+
+    :param deck: Tuple containing the remaining cards in the deck
+    :param hand: Tuple containing the player's current hand
+    :param dealer_card: Tuple containing the dealer's current hand
+    :param debug: Whether to output timing information (default=False)
+    :return: Tuple containing (win probability, stand probability, hit probability)
     """
     deck = list(deck)
     hand = list(hand)
@@ -314,11 +330,13 @@ def calculate_all(deck: tuple, hand: tuple, dealer_card: tuple, debug: bool = Fa
 
 def calculate_bias(empty_deck: tuple, current_deck: tuple) -> float:
     """
-    :param empty_deck:
-    :param current_deck:
-    :return: index of current deck's bias
-             higher means that there are more high cards in deck
-             lower means that there are more low cards in deck
+    Calculate the bias of the current deck relative to a complete deck.
+
+    A positive bias means more high cards remain; negative means more low cards remain.
+
+    :param empty_deck: Tuple representing a complete/reference deck
+    :param current_deck: Tuple representing the current state of the deck
+    :return: Percentage bias index (-100 to 100) indicating deck composition
     """
     empty_deck = sorted(list(empty_deck))
     current_deck = sorted(list(current_deck))
@@ -327,7 +345,6 @@ def calculate_bias(empty_deck: tuple, current_deck: tuple) -> float:
     average_current_value: float = sum(current_deck) / len(current_deck)
 
     # Index calculated by percentage change of average values : Maximum value of 100 (highly unlikely)
-
     index: float = (100 * (average_current_value - average_empty_value)) / average_empty_value
 
     return index

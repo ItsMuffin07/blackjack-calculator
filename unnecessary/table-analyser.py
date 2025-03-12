@@ -14,6 +14,11 @@ class BlackjackAnalyzer(tk.Tk):
         self.title("Blackjack Strategy Map")
         self.geometry("1000x800")
 
+        # Font settings
+        self.font_family = 'Arial'
+        self.font_size_large = 12
+        self.font_size_small = 10
+
         # Initialize deck
         self.full_deck = self._create_standard_deck()
 
@@ -41,7 +46,7 @@ class BlackjackAnalyzer(tk.Tk):
         """Load all probabilities from CSV files"""
         cache = {}
         for dealer_card in range(2, 12):
-            filename = os.path.join('single_deck_table', f"blackjack_probs_{dealer_card}.csv")
+            filename = os.path.join('../single_deck_table', f"blackjack_probs_{dealer_card}.csv")
             if os.path.exists(filename):
                 cache[dealer_card] = {}
                 with open(filename, 'r') as f:
@@ -60,6 +65,16 @@ class BlackjackAnalyzer(tk.Tk):
         # Top frame for dealer selection and stats
         top_frame = ttk.Frame(self)
         top_frame.pack(pady=10)
+
+        # Font size controls
+        font_frame = ttk.Frame(top_frame)
+        font_frame.pack(side=tk.LEFT, padx=20)
+
+        ttk.Label(font_frame, text="Font Size:").pack(side=tk.LEFT)
+        self.font_scale = ttk.Scale(font_frame, from_=8, to=16, orient=tk.HORIZONTAL, length=100)
+        self.font_scale.set(self.font_size_small)
+        self.font_scale.pack(side=tk.LEFT, padx=5)
+        self.font_scale.bind('<ButtonRelease-1>', lambda e: self.update_font_size())
 
         # Dealer card selection
         dealer_frame = ttk.Frame(top_frame)
@@ -100,13 +115,13 @@ class BlackjackAnalyzer(tk.Tk):
                 cell_frame.grid(row=row + 1, column=col + 1, sticky="nsew")
                 cell_frame.grid_propagate(False)
 
-                action_label = tk.Label(cell_frame, text="", font=('Arial', 8, 'bold'))
+                action_label = tk.Label(cell_frame, text="", font=(self.font_family, self.font_size_small, 'bold'))
                 action_label.pack(expand=True)
 
-                prob_label = tk.Label(cell_frame, text="", font=('Arial', 7))
+                prob_label = tk.Label(cell_frame, text="", font=(self.font_family, self.font_size_small - 2))
                 prob_label.pack(expand=True)
 
-                ratio_label = tk.Label(cell_frame, text="", font=('Arial', 7))
+                ratio_label = tk.Label(cell_frame, text="", font=(self.font_family, self.font_size_small - 2))
                 ratio_label.pack(expand=True)
 
                 self.cells[(row, col)] = {
@@ -120,6 +135,17 @@ class BlackjackAnalyzer(tk.Tk):
         for i in range(11):
             self.grid_frame.grid_columnconfigure(i, weight=1)
             self.grid_frame.grid_rowconfigure(i, weight=1)
+
+    def update_font_size(self):
+        """Update font size for all labels in the grid"""
+        new_size = int(self.font_scale.get())
+        self.font_size_small = new_size
+        self.font_size_large = new_size + 2
+
+        for cell in self.cells.values():
+            cell['action'].configure(font=(self.font_family, self.font_size_small, 'bold'))
+            cell['prob'].configure(font=(self.font_family, self.font_size_small - 2))
+            cell['ratio'].configure(font=(self.font_family, self.font_size_small - 2))
 
     @staticmethod
     def _get_color(probability: float, is_hit: bool) -> str:
@@ -196,8 +222,8 @@ class BlackjackAnalyzer(tk.Tk):
 def generate_probability_files():
     """Generate CSV files containing all probabilities for each dealer card"""
     # Create directory if it doesn't exist
-    if not os.path.exists('single_deck_table'):
-        os.makedirs('single_deck_table')
+    if not os.path.exists('../single_deck_table'):
+        os.makedirs('../single_deck_table')
 
     deck = []
     for i in range(2, 10):
@@ -207,7 +233,7 @@ def generate_probability_files():
 
     # Generate for each dealer card
     for dealer_card in range(2, 12):
-        filename = os.path.join('single_deck_table', f"blackjack_probs_{dealer_card}.csv")
+        filename = os.path.join('../single_deck_table', f"blackjack_probs_{dealer_card}.csv")
 
         with open(filename, 'w', newline='') as f:
             writer = csv.writer(f)
@@ -234,8 +260,8 @@ def generate_probability_files():
 
 
 if __name__ == "__main__":
-    if not os.path.exists('single_deck_table') or \
-            not all(os.path.exists(os.path.join('single_deck_table', f"blackjack_probs_{i}.csv"))
+    if not os.path.exists('../single_deck_table') or \
+            not all(os.path.exists(os.path.join('../single_deck_table', f"blackjack_probs_{i}.csv"))
                     for i in range(2, 12)):
         print("Generating probability files...")
         generate_probability_files()
